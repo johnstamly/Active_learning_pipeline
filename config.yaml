@@ -1,0 +1,47 @@
+# --- General Project Settings ---
+PROJECT:
+  NAME: "Active_Learning_DKGP_Project"
+  CLEANUP_PREVIOUS_RUNS: False # Set to True to clear old files before starting
+  
+# --- File Paths and Names ---
+PATHS:
+  DATA_FILE: "Data_v4.xlsx"
+  PROCESSED_DIR: "data/processed"
+  ARTIFACTS_DIR: "artifacts"
+
+# --- Data Columns ---
+COLUMNS:
+  TARGET: "Strength"
+  PREDICTED_MEAN: "Predicted_Strength_Mean" # Existing column for model mean
+  VOLUME: "Volume" # <-- ADD THIS LINE
+  CATEGORY: "Category_C" # The internal name for the derived binary feature
+  BASE_INPUT_FEATURES:
+    - 'a_ply1'
+    - 'a_ply2'
+    - 'a_ply3'
+    - 'a_ply4'
+    - 'a_ply5'
+    - 'a_ply6'
+    - 'b_ply1'
+    - 'b_ply2'
+    - 'b_ply3'
+    - 'b_ply4'
+    - 'b_ply5'
+    - 'b_ply6'
+
+# --- Surrogate Model Parameters (train_surrogate.py) ---
+MODEL:
+  LATENT_DIM: 4
+  MLP_DEPTH: 1
+  NUM_EPOCHS: 10000
+  LEARNING_RATE: 0.001
+  WEIGHT_DECAY: 0.01
+
+# --- Bayesian Optimization Parameters (find_new_candidate_points.py) ---
+OPTIMIZATION:
+  NUM_RANDOM_SAMPLES: 200000 # Number of points to search for EI max
+  THICKNESS_CONSTANT: 2
+  # Search Bounds (Integers only)
+  A_PLY_MIN: 5
+  A_PLY_MAX: 35
+  B_PLY_MAX_LIMIT: 50 # Upper limit used for b_ply sampling

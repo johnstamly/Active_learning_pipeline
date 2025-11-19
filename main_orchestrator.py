@@ -10,6 +10,7 @@ from config_manager import ConfigManager
 from prepare_data import load_and_prepare_data
 from train_surrogate import train_dkgp_dual_models
 from find_new_candidate_points import find_dual_candidate_points
+from visualize_patches import generate_candidate_visualizations
 
 # --- Configuration Constant ---
 CONFIG_FILE = "config.yaml"
@@ -45,26 +46,32 @@ def main_orchestrator():
         setup_directories(config_manager)
         
         # --- STEP 1: PREPARE DATA ---
-        print("\n[STEP 1/3] Executing Data Preparation...")
+        print("\n[STEP 1/4] Executing Data Preparation...")
         _, _, final_features = load_and_prepare_data(
             data_file_path=config_manager.get('PATHS.DATA_FILE'),
             input_features=config_manager.get('COLUMNS.BASE_INPUT_FEATURES'),
             target_column=config_manager.get('COLUMNS.TARGET'),
             processed_dir=config_manager.get('PATHS.PROCESSED_DIR'),
-            artifacts_dir=config_manager.get('PATHS.ARTIFACTS_DIR')
+            artifacts_dir=config_manager.get('PATHS.ARTIFACTS_DIR'),
+            feature_bounds=(config_manager.get('OPTIMIZATION.A_PLY_MIN'), config_manager.get('OPTIMIZATION.A_PLY_MAX'))
         )
         print(f"Data Prepared. Total feature count: {len(final_features)}")
         
         # --- STEP 2: TRAIN SURROGATE MODELS ---
-        print("\n[STEP 2/3] Executing Dual Surrogate Model Training...")
+        print("\n[STEP 2/4] Executing Dual Surrogate Model Training...")
         # Pass the config manager to train_dkgp_dual_models
         _ = train_dkgp_dual_models(config_manager)
         print("Dual Models Trained and Artifacts Saved.")
         
         # --- STEP 3: FIND NEW CANDIDATE POINTS ---
-        print("\n[STEP 3/3] Executing Candidate Finding (Bayesian Optimization)...")
+        print("\n[STEP 3/4] Executing Candidate Finding (Bayesian Optimization)...")
         # Pass the config manager to find_dual_candidate_points
         candidates_found: Dict[int, pd.DataFrame] = find_dual_candidate_points(config_manager)
+
+        # --- STEP 4: VISUALIZE CANDIDATES ---
+        print("\n[STEP 4/4] Generating 3D Visualizations...")
+        generate_candidate_visualizations(config_manager)
+        print("Visualizations generated.")
         
         print("\n" + "="*70)
         print("## WORKFLOW SUCCESSFUL ##")

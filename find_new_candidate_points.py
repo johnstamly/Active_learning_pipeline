@@ -5,141 +5,117 @@ import numpy as np
 import os
 import joblib
 from scipy.stats import norm
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any
+from model_definitions import DeepKernel, DeepKernelGP
 
-# Filenames used for loading/saving (now treated as constants *within* the function)
-TARGET_SCALER_FILENAME = 'target_scaler.pkl'
-DKGP_MODEL_FILENAME = 'dkgp_model_cat_{}.pth'
-TRAIN_DATA_FILENAME = 'train_data_cat_{}.pt'
-NEW_CANDIDATE_FILENAME = 'new_candidate_point_cat_{}.csv'
-PROCESSED_DATA_DIR_NAME = 'processed' # Subdirectory of PARENT(artifacts_dir)
+# --- HELPER FUNCTIONS ---
 
-# --- Model Definitions (Re-defined for loading, taking dynamic dims) ---
-class DeepKernel(torch.nn.Module):
-    def __init__(self, input_dim: int, latent_dim: int):
-        super().__init__()
-        self.linear1 = torch.nn.Linear(input_dim, latent_dim)
-    def forward(self, x):
-        return self.linear1(x)
-
-class DeepKernelGP(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, feature_extractor):
-        super().__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ZeroMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-        self.feature_extractor = feature_extractor
-    def forward(self, x):
-        projected_x = self.feature_extractor(x)
-        mean_x = self.mean_module(projected_x)
-        covar_x = self.covar_module(projected_x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-    
-# Constrain Function
 def generate_random_valid_point(config_manager: Any) -> np.ndarray:
-    """Generates a single, random, constraint-respecting integer point."""
-    
-    A_PLY_MIN = config_manager.get('OPTIMIZATION.A_PLY_MIN') # 5
-    A_PLY_MAX = config_manager.get('OPTIMIZATION.A_PLY_MAX') # 35
-    
+    """Generates a single valid integer point (Same as before)."""
+    A_PLY_MIN = config_manager.get('OPTIMIZATION.A_PLY_MIN')
+    A_PLY_MAX = config_manager.get('OPTIMIZATION.A_PLY_MAX')
     full_range = range(A_PLY_MIN, A_PLY_MAX + 1)
-    
+
     def generate_valid_sequence():
-        """Generates 6 monotonically increasing integer plies within [5, 35]."""
         while True:
-            # Generate 6 distinct numbers in the range [5, 35], sorted for monotonicity
             plies = np.random.choice(full_range, size=6, replace=False)
             plies.sort()
             return plies
-            
+
     while True:
-        # 1. Generate a_plies: [a1, a2, a3, a4, a5, a6]
         a_plies = generate_valid_sequence()
-        
-        # 2. Generate b_plies: [b1, b2, b3, b4, b5, b6]
         b_plies = []
         possible = True
-        
         for i in range(6):
-            
-            # --- INTRA-PLY MAX CONSTRAINT: b_ply_i <= a_ply_i ---
-            # Max b_ply_i can be is the value of a_ply_i
             max_b_current = a_plies[i]
-            
-            # --- CROSS-PLY MIN CONSTRAINT: b_ply_i+1 > a_ply_i ---
-            # For the *first* ply (i=0): min_b is only constrained by the next ply's requirement (handled below).
-            # For subsequent plies (i > 0): The minimum is determined by the previous b_ply.
             min_b = b_plies[-1] + 1 if i > 0 else A_PLY_MIN
-            
-            # --- CRITICAL CROSS-PLY CONSTRAINT: b_ply_i > a_ply_i-1 ---
-            # Ensure the current minimum is at least 1 greater than the *previous* a_ply.
-            # This is simplified: b_ply_i must be > a_ply_i-1.
-            if i > 0:
-                min_b = max(min_b, a_plies[i-1] + 1) 
-            
-            # Global upper bound (35) must still be respected
+            if i > 0: min_b = max(min_b, a_plies[i-1] + 1)
             max_b = min(max_b_current, A_PLY_MAX)
             
-            # Check if there is a single available integer in the range [min_b, max_b]
             if min_b > max_b:
-                # If this sequence of 'a' plies makes generating 'b' plies impossible, restart.
                 possible = False
                 break
-            
-            # Sample b_val, ensuring integer type
             b_val = np.random.randint(min_b, max_b + 1)
             b_plies.append(b_val)
         
         if possible:
-            break
-            
-    # Combine and return (12 features)
-    return np.array(a_plies.tolist() + b_plies, dtype=np.float32)
+            return np.array(a_plies.tolist() + b_plies, dtype=np.float32)
 
-# --- Expected Improvement (EI) Function (Same as before) ---
+def calculate_elliptical_volume(candidates_np: np.ndarray, thickness: float = 2.0) -> np.ndarray:
+    """
+    Calculates volume for a batch of candidates.
+    Formula: Sum( pi * a * b * t )
+    Input shape: (N, 12) -> First 6 are 'a', Last 6 are 'b'
+    """
+    # Split into a and b (first 6 columns are a, last 6 are b)
+    a_plies = candidates_np[:, 0:6]
+    b_plies = candidates_np[:, 6:12]
+    
+    # Calculate area of each ply: pi * a * b
+    # Note: usually a and b are semi-axes. If your inputs are diameters/lengths, 
+    # you might need (a/2)*(b/2). 
+    # Assuming inputs are SEMI-AXES based on standard ellipse formulas: Area = pi * a * b
+    ply_areas = np.pi * a_plies * b_plies
+    
+    # Total volume = Sum of areas * thickness
+    total_volume = np.sum(ply_areas, axis=1) * thickness
+    return total_volume
+
 def expected_improvement(mu: torch.Tensor, sigma: torch.Tensor, max_y: float) -> torch.Tensor:
     sigma_safe = torch.where(sigma > 1e-6, sigma, torch.ones_like(sigma) * 1e-6)
     Z = (mu - max_y) / sigma_safe
-    
     ei = (mu - max_y) * norm.cdf(Z.detach().numpy()) + sigma_safe * norm.pdf(Z.detach().numpy())
-    
     ei = torch.where(sigma <= 1e-6, torch.max(torch.zeros_like(mu), mu - max_y), ei)
-    
     return ei
 
-# --- Candidate Finding Main Function ---
-def find_dual_candidate_points(
-    config_manager: Any # Using Any to avoid circular dependency on ConfigManager class
-) -> Dict[int, pd.DataFrame]:
-    """
-    Loads models, finds the point maximizing Expected Improvement (EI) for each category,
-    and saves the two new candidates.
-    """
-    print("\n--- Candidate Finding Start (Dual EI Optimization) ---")
+# --- MAIN FUNCTION ---
 
-    # Extract settings from config
+def find_dual_candidate_points(config_manager: Any) -> Dict[int, pd.DataFrame]:
+    print("\n--- Candidate Finding Start (Multi-Objective: Strength & Volume) ---")
+
     artifacts_dir = config_manager.get('PATHS.ARTIFACTS_DIR')
     base_features = config_manager.get('COLUMNS.BASE_INPUT_FEATURES')
-    target_column = config_manager.get('COLUMNS.TARGET')
     latent_dim = config_manager.get('MODEL.LATENT_DIM')
     num_random_samples = config_manager.get('OPTIMIZATION.NUM_RANDOM_SAMPLES')
     
+    # Optim bounds
+    A_PLY_MIN = config_manager.get('OPTIMIZATION.A_PLY_MIN')
+    A_PLY_MAX = config_manager.get('OPTIMIZATION.A_PLY_MAX')
+    THICKNESS_CONST = config_manager.get('OPTIMIZATION.THICKNESS_CONSTANT') # Ensure this exists in config!
+    
+    # Weighting Factor
+    # If not in config, default to 0.0 (Strength Only)
+    try:
+        vol_weight = config_manager.get('OPTIMIZATION.VOLUME_WEIGHT')
+    except:
+        vol_weight = 0.0
+    
+    print(f"Optimization Weights -> Strength: {1 - vol_weight:.2f} | Minimize Volume: {vol_weight:.2f}")
+
+    # Pre-calculate theoretical Min/Max Volume for normalization
+    # Smallest patch: 6 plies, all size MIN (theoretical lower bound)
+    min_vol_theoretical = 6 * np.pi * A_PLY_MIN * A_PLY_MIN * THICKNESS_CONST
+    # Largest patch: 6 plies, all size MAX (theoretical upper bound)
+    max_vol_theoretical = 6 * np.pi * A_PLY_MAX * A_PLY_MAX * THICKNESS_CONST
+    
+    print(f"Volume Range for Normalization: {min_vol_theoretical:.0f} - {max_vol_theoretical:.0f} mm^3")
+
     categories = [0, 1]
     input_dim = len(base_features)
-
-    # Load Scaler (common to both models)
-    target_scaler = joblib.load(os.path.join(artifacts_dir, TARGET_SCALER_FILENAME))
-
+    target_scaler = joblib.load(os.path.join(artifacts_dir, 'target_scaler.pkl'))
     all_candidates = {}
 
     for category in categories:
         print(f"\n--- Optimizing for Category {category} ---")
         
-        # 1. Load Model and Training Data
+        # 1. Load Model
         try:
-            model_state = torch.load(os.path.join(artifacts_dir, DKGP_MODEL_FILENAME.format(category)))
-            train_data = torch.load(os.path.join(artifacts_dir, TRAIN_DATA_FILENAME.format(category)))
+            model_path = os.path.join(artifacts_dir, f'dkgp_model_cat_{category}.pth')
+            data_path = os.path.join(artifacts_dir, f'train_data_cat_{category}.pt')
+            model_state = torch.load(model_path)
+            train_data = torch.load(data_path)
         except FileNotFoundError:
-            print(f"Skipping Category {category}: Model or data not found.")
+            print(f"Skipping Category {category}: Artifacts not found.")
             continue
             
         train_x = train_data['train_x']
@@ -149,62 +125,78 @@ def find_dual_candidate_points(
         feature_extractor = DeepKernel(input_dim=input_dim, latent_dim=latent_dim)
         model = DeepKernelGP(train_x, train_y, likelihood, feature_extractor)
         model.load_state_dict(model_state)
-        
-        # Set to evaluation mode
         model.eval()
         likelihood.eval()
-
-        # Determine f_max
+        
         f_max = train_y.max().item()
-        print(f"Max observed scaled Strength: {f_max:.4f} (from {len(train_y)} points)")
 
-        # 2. Generate Constraint-Respecting Candidate Pool
+        # 2. Generate Candidates (Physical Integers)
         candidate_pool_list = [generate_random_valid_point(config_manager) for _ in range(num_random_samples)]
         candidate_pool_np = np.stack(candidate_pool_list)
-        candidate_pool = torch.tensor(candidate_pool_np, dtype=torch.float32)
         
-        # 3. Evaluate EI
+        # 3. Calculate Normalized Volume Score (0 to 1)
+        # 0 = Smallest Volume (Good), 1 = Largest Volume (Bad)
+        volumes = calculate_elliptical_volume(candidate_pool_np, thickness=THICKNESS_CONST)
+        volumes_norm = (volumes - min_vol_theoretical) / (max_vol_theoretical - min_vol_theoretical)
+        volumes_norm = np.clip(volumes_norm, 0, 1) # Safety clip
+
+        # 4. Calculate Strength EI
+        # Scale inputs for GP
+        candidate_pool_scaled_np = (candidate_pool_np - A_PLY_MIN) / (A_PLY_MAX - A_PLY_MIN)
+        candidate_pool_tensor = torch.tensor(candidate_pool_scaled_np, dtype=torch.float32)
+        
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            predictive_dist = likelihood(model(candidate_pool))
+            predictive_dist = likelihood(model(candidate_pool_tensor))
             mu = predictive_dist.mean
             sigma = predictive_dist.stddev
+            ei_strength = expected_improvement(mu, sigma, f_max)
             
-            ei_values = expected_improvement(mu, sigma, f_max)
-            
-        # 4. Find the Best Candidate
-        best_ei_index = torch.argmax(ei_values)
-        best_candidate_x = candidate_pool[best_ei_index]
-        best_ei_value = ei_values[best_ei_index].item()
+        # Normalize EI to [0, 1] roughly so it competes fairly with volume
+        # EI values can be very small, so we MinMax scale them relative to the batch
+        ei_min = ei_strength.min()
+        ei_max = ei_strength.max()
+        if ei_max > ei_min:
+            ei_norm = (ei_strength - ei_min) / (ei_max - ei_min)
+        else:
+            ei_norm = ei_strength # Handle edge case of 0 variance
+
+        # 5. Multi-Objective Scoring
+        # We want to Maximize EI and Minimize Volume.
+        # Score = (Weight_Strength * EI_Normalized) - (Weight_Volume * Volume_Normalized)
         
-        # 5. Format and Save Output
-        new_candidate_df = pd.DataFrame([best_candidate_x.numpy()], columns=base_features)
+        # Convert tensor to numpy for combination
+        ei_norm_np = ei_norm.numpy()
         
-        # Add the fixed Category_C column
-        new_candidate_df[config_manager.get('COLUMNS.CATEGORY')] = category
+        # Final Calculation
+        final_score = ((1.0 - vol_weight) * ei_norm_np) - (vol_weight * volumes_norm)
         
-        # Add prediction metrics
-        predicted_y_scaled = mu[best_ei_index].item()
+        # 6. Select Best
+        best_idx = np.argmax(final_score)
+        
+        # 7. Formatting
+        best_candidate_physical = candidate_pool_np[best_idx]
+        best_vol = volumes[best_idx]
+        best_ei_raw = ei_strength[best_idx].item()
+        
+        predicted_y_scaled = mu[best_idx].item()
         predicted_y_unscaled = target_scaler.inverse_transform(np.array([[predicted_y_scaled]]))[0, 0]
-        
-        new_candidate_df[f'Predicted_{target_column}_Unscaled'] = predicted_y_unscaled
-        new_candidate_df['Expected_Improvement'] = best_ei_value
 
-        # 6. Save the New Candidate
-        processed_dir_path = config_manager.get('PATHS.PROCESSED_DIR')
-        save_path = os.path.join(processed_dir_path, NEW_CANDIDATE_FILENAME.format(category))
+        new_candidate_df = pd.DataFrame([best_candidate_physical], columns=base_features)
+        new_candidate_df[config_manager.get('COLUMNS.CATEGORY')] = category
+        new_candidate_df[f'Predicted_{config_manager.get("COLUMNS.TARGET")}_Unscaled'] = predicted_y_unscaled
+        new_candidate_df['Predicted_Volume'] = best_vol
+        new_candidate_df['EI_Strength_Raw'] = best_ei_raw
+        new_candidate_df['Multi_Obj_Score'] = final_score[best_idx]
 
-        # --- FIX: Ensure the directory exists ---
-        os.makedirs(processed_dir_path, exist_ok=True)
-
+        save_path = os.path.join(config_manager.get('PATHS.PROCESSED_DIR'), f'new_candidate_point_cat_{category}.csv')
         new_candidate_df.to_csv(save_path, index=False)
 
-        print(f"  Best EI: {best_ei_value:.4f}")
-        
-        print(f"  Best EI: {best_ei_value:.4f}")
-        print(f"  Predicted Unscaled Strength: {predicted_y_unscaled:.2f}")
-        print(f"  New candidate saved to {save_path}")
-        
+        print(f"  Selected Design Stats:")
+        print(f"    -> Strength Prediction: {predicted_y_unscaled:.2f}")
+        print(f"    -> Volume: {best_vol:.0f} mm^3")
+        print(f"    -> EI (Strength): {best_ei_raw:.4f}")
+        print(f"    -> Multi-Objective Score: {final_score[best_idx]:.4f}")
+
         all_candidates[category] = new_candidate_df
 
-    print("\n--- Candidate Finding Complete ---")
     return all_candidates

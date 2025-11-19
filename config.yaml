@@ -31,17 +31,18 @@ COLUMNS:
 
 # --- Surrogate Model Parameters (train_surrogate.py) ---
 MODEL:
-  LATENT_DIM: 4
-  MLP_DEPTH: 1
+  LATENT_DIM: 3
+  MLP_DEPTH: 3
   NUM_EPOCHS: 10000
   LEARNING_RATE: 0.001
-  WEIGHT_DECAY: 0.01
+  WEIGHT_DECAY: 0.0001
 
 # --- Bayesian Optimization Parameters (find_new_candidate_points.py) ---
 OPTIMIZATION:
-  NUM_RANDOM_SAMPLES: 200000 # Number of points to search for EI max
+  NUM_RANDOM_SAMPLES: 2000000 # Number of points to search for EI max
   THICKNESS_CONSTANT: 2
   # Search Bounds (Integers only)
   A_PLY_MIN: 5
   A_PLY_MAX: 35
-  B_PLY_MAX_LIMIT: 50 # Upper limit used for b_ply sampling
+  B_PLY_MAX_LIMIT: 35 # Upper limit used for b_ply sampling
+  VOLUME_WEIGHT: 0.3  # 0.0 = Ignore Volume, 0.5 = Equal, 1.0 = Only Minimize Volume

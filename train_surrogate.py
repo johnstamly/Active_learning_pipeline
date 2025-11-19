@@ -4,36 +4,13 @@ import pandas as pd
 import os
 import joblib
 from typing import Tuple, List, Dict, Any
+from model_definitions import DeepKernel, DeepKernelGP
 
 # Filenames used for saving (now treated as constants *within* the function)
 PROCESSED_DATA_FILENAME = 'processed_data.csv'
 DKGP_MODEL_FILENAME = 'dkgp_model_cat_{}.pth'
 TRAIN_DATA_FILENAME = 'train_data_cat_{}.pt'
 
-# We define the model class outside the function as it's static
-class DeepKernel(torch.nn.Module):
-    # Constructor now takes dimensions dynamically
-    def __init__(self, input_dim: int, latent_dim: int):
-        super().__init__()
-        self.linear1 = torch.nn.Linear(input_dim, latent_dim)
-    def forward(self, x):
-        return self.linear1(x)
-
-class DeepKernelGP(gpytorch.models.ExactGP):
-    # ... (Model Definition remains the same)
-    def __init__(self, train_x, train_y, likelihood, feature_extractor):
-        super().__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ZeroMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-        self.feature_extractor = feature_extractor
-        for param in self.feature_extractor.parameters():
-            if param.dim() > 1:
-                torch.nn.init.xavier_uniform_(param)
-    def forward(self, x):
-        projected_x = self.feature_extractor(x)
-        mean_x = self.mean_module(projected_x)
-        covar_x = self.covar_module(projected_x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 # --- 2. Single Model Training Helper ---
 def train_single_model(

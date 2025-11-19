@@ -197,57 +197,52 @@ def save_visualization(fig, category, experiment_id, output_dir):
     
     return filepath
 
-def main():
-    """Main function to read data and create visualizations."""
+# ... (Keep imports and helper functions create_ellipse_points, create_composite_patch_visualization, etc.) ...
+
+# RENAME 'main' to this:
+def generate_candidate_visualizations(config_manager: ConfigManager):
+    """
+    Orchestrator-friendly function to generate visualizations for newly found candidates.
+    """
+    logger.info("--- Starting Visualization of New Candidates ---")
     
-    try:
-        config_manager = ConfigManager(CONFIG_FILE)
-    except Exception as e:
-        logger.error(f"FATAL: Could not load config.yaml: {e}. Exiting.")
-        return
-    
-    # --- File paths and columns from config ---
-    # We will read from the processed candidates file for visualization simplicity
-    excel_file = config_manager.get('PATHS.DATA_FILE')
     processed_dir = config_manager.get('PATHS.PROCESSED_DIR')
+    # Save figures in a 'figures' folder next to 'processed'
     output_dir = os.path.join(os.path.dirname(processed_dir), "figures/composite_patches")
     
-    # Filenames for the new candidates
+    # Filenames for the new candidates (Category 0 and 1)
     candidate_files = {
         'Elips0': os.path.join(processed_dir, 'new_candidate_point_cat_0.csv'),
         'Elips1': os.path.join(processed_dir, 'new_candidate_point_cat_1.csv')
     }
     
     try:
-        logger.info(f"Attempting to read candidate data from {processed_dir}")
-        
         for category, file_path in candidate_files.items():
             if not os.path.exists(file_path):
-                logger.warning(f"Candidate file not found for {category} at {file_path}. Skipping visualization.")
+                logger.warning(f"No candidate file found for {category}. Skipping.")
                 continue
 
             df = pd.read_csv(file_path)
             
-            logger.info(f"Processing {category} category with {len(df)} candidate point(s).")
-            
+            # Loop through the single candidate (or multiple if configured differently)
             for idx, row in df.iterrows():
-                # Use a combined ID for the filename
-                experiment_id = f"{row.get('Category_C', category)}_{idx}" 
+                # Create ID
+                cat_val = row.get(config_manager.get('COLUMNS.CATEGORY'), 'Unknown')
+                experiment_id = f"Candidate_Cat{cat_val}" 
                 
-                logger.info(f"Creating visualization for {category} - ID {experiment_id}")
+                logger.info(f"Visualizing {category} ({experiment_id})...")
                 
-                # Pass config_manager to the creation function
+                # Generate Figure
                 fig = create_composite_patch_visualization(row, category, config_manager, experiment_id)
                 
-                # Save visualization
-                save_visualization(fig, category, experiment_id, output_dir)
+                # Save
+                saved_path = save_visualization(fig, category, experiment_id, output_dir)
+                logger.info(f"Saved to: {saved_path}")
                 
-        logger.info(f"All available candidate visualizations saved to {output_dir}")
-        
     except Exception as e:
-        logger.error(f"Error during visualization process: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error during visualization: {e}")
 
+# Keep this for standalone testing
 if __name__ == "__main__":
-    main()
+    cm = ConfigManager("config.yaml")
+    generate_candidate_visualizations(cm)

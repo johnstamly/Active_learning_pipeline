@@ -27,6 +27,7 @@ def train_single_model(
     
     input_dim = len(input_features)
     latent_dim = config_manager.get('MODEL.LATENT_DIM')
+    mlp_depth = config_manager.get('MODEL.MLP_DEPTH')
     num_epochs = config_manager.get('MODEL.NUM_EPOCHS')
     lr = config_manager.get('MODEL.LEARNING_RATE')
     weight_decay = config_manager.get('MODEL.WEIGHT_DECAY')
@@ -43,7 +44,7 @@ def train_single_model(
 
     # Initialize Model Components
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
-    feature_extractor = DeepKernel(input_dim=input_dim, latent_dim=latent_dim)
+    feature_extractor = DeepKernel(input_dim=input_dim, latent_dim=latent_dim, mlp_depth=mlp_depth)
     model = DeepKernelGP(train_x, train_y, likelihood, feature_extractor)
 
     model.train()

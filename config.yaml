@@ -32,8 +32,8 @@ COLUMNS:
 # --- Surrogate Model Parameters (train_surrogate.py) ---
 MODEL:
   LATENT_DIM: 4
-  MLP_DEPTH: 8
-  NUM_EPOCHS: 10000
+  MLP_DEPTH: 3
+  NUM_EPOCHS: 20000
   LEARNING_RATE: 0.001
   WEIGHT_DECAY: 0.0001
 
@@ -45,4 +45,4 @@ OPTIMIZATION:
   A_PLY_MIN: 5
   A_PLY_MAX: 35
   B_PLY_MAX_LIMIT: 35 # Upper limit used for b_ply sampling
-  VOLUME_WEIGHT: 0.5  # 0.0 = Ignore Volume, 0.5 = Equal, 1.0 = Only Minimize Volume
+  VOLUME_WEIGHT: 0.4  # 0.0 = Ignore Volume, 0.5 = Equal, 1.0 = Only Minimize Volume

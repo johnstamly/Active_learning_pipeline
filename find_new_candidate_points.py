@@ -10,8 +10,17 @@ from model_definitions import DeepKernel, DeepKernelGP
 
 # --- HELPER FUNCTIONS ---
 
-def generate_random_valid_point(config_manager: Any) -> np.ndarray:
-    """Generates a single valid integer point (Same as before)."""
+def generate_random_valid_point(config_manager: Any, category: int) -> np.ndarray:
+    """
+    Generates a single valid integer point with category-specific constraints.
+    
+    Constraints:
+    1. Bounds: A_PLY_MIN <= val <= A_PLY_MAX
+    2. Nesting (a): a_i < a_{i+1} (Strictly increasing)
+    3. Nesting (b): b_i < b_{i+1} (Strictly increasing)
+    4. Aspect Ratio: b_i <= a_i
+    5. Support (Cat 1 Only): a_i <= b_{i+1} (Prevents overhangs in mixed orientation)
+    """
     A_PLY_MIN = config_manager.get('OPTIMIZATION.A_PLY_MIN')
     A_PLY_MAX = config_manager.get('OPTIMIZATION.A_PLY_MAX')
     full_range = range(A_PLY_MIN, A_PLY_MAX + 1)
@@ -26,15 +35,32 @@ def generate_random_valid_point(config_manager: Any) -> np.ndarray:
         a_plies = generate_valid_sequence()
         b_plies = []
         possible = True
+        
         for i in range(6):
-            max_b_current = a_plies[i]
-            min_b = b_plies[-1] + 1 if i > 0 else A_PLY_MIN
-            if i > 0: min_b = max(min_b, a_plies[i-1] + 1)
+            max_b_current = a_plies[i] # Constraint 4: b_i <= a_i
+            
+            # Base Lower Bound
+            min_b = A_PLY_MIN
+            
+            if i > 0:
+                # Constraint 3: b_i > b_{i-1} -> b_i >= b_{i-1} + 1
+                min_b_nesting = b_plies[-1] + 1
+                min_b = max(min_b, min_b_nesting)
+                
+                # Constraint 5 (Category 1 Only): a_{i-1} <= b_i
+                if category == 1:
+                    min_b_support = a_plies[i-1]
+                    min_b = max(min_b, min_b_support)
+            
+            # Apply Upper Bound
             max_b = min(max_b_current, A_PLY_MAX)
             
+            # Check Feasibility
             if min_b > max_b:
                 possible = False
                 break
+            
+            # Sample Valid Integer
             b_val = np.random.randint(min_b, max_b + 1)
             b_plies.append(b_val)
         
@@ -52,9 +78,6 @@ def calculate_elliptical_volume(candidates_np: np.ndarray, thickness: float = 2.
     b_plies = candidates_np[:, 6:12]
     
     # Calculate area of each ply: pi * a * b
-    # Note: usually a and b are semi-axes. If your inputs are diameters/lengths, 
-    # you might need (a/2)*(b/2). 
-    # Assuming inputs are SEMI-AXES based on standard ellipse formulas: Area = pi * a * b
     ply_areas = np.pi * a_plies * b_plies
     
     # Total volume = Sum of areas * thickness
@@ -81,10 +104,9 @@ def find_dual_candidate_points(config_manager: Any) -> Dict[int, pd.DataFrame]:
     # Optim bounds
     A_PLY_MIN = config_manager.get('OPTIMIZATION.A_PLY_MIN')
     A_PLY_MAX = config_manager.get('OPTIMIZATION.A_PLY_MAX')
-    THICKNESS_CONST = config_manager.get('OPTIMIZATION.THICKNESS_CONSTANT') # Ensure this exists in config!
+    THICKNESS_CONST = config_manager.get('OPTIMIZATION.THICKNESS_CONSTANT')
     
     # Weighting Factor
-    # If not in config, default to 0.0 (Strength Only)
     try:
         vol_weight = config_manager.get('OPTIMIZATION.VOLUME_WEIGHT')
     except:
@@ -93,9 +115,7 @@ def find_dual_candidate_points(config_manager: Any) -> Dict[int, pd.DataFrame]:
     print(f"Optimization Weights -> Strength: {1 - vol_weight:.2f} | Minimize Volume: {vol_weight:.2f}")
 
     # Pre-calculate theoretical Min/Max Volume for normalization
-    # Smallest patch: 6 plies, all size MIN (theoretical lower bound)
     min_vol_theoretical = 6 * np.pi * A_PLY_MIN * A_PLY_MIN * THICKNESS_CONST
-    # Largest patch: 6 plies, all size MAX (theoretical upper bound)
     max_vol_theoretical = 6 * np.pi * A_PLY_MAX * A_PLY_MAX * THICKNESS_CONST
     
     print(f"Volume Range for Normalization: {min_vol_theoretical:.0f} - {max_vol_theoretical:.0f} mm^3")
@@ -122,7 +142,8 @@ def find_dual_candidate_points(config_manager: Any) -> Dict[int, pd.DataFrame]:
         train_y = train_data['train_y']
         
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        feature_extractor = DeepKernel(input_dim=input_dim, latent_dim=latent_dim)
+        # Ensure mlp_depth matches your config if you added that parameter to DeepKernel, otherwise remove it
+        feature_extractor = DeepKernel(input_dim=input_dim, latent_dim=latent_dim, mlp_depth=config_manager.get('MODEL.MLP_DEPTH')) 
         model = DeepKernelGP(train_x, train_y, likelihood, feature_extractor)
         model.load_state_dict(model_state)
         model.eval()
@@ -131,17 +152,16 @@ def find_dual_candidate_points(config_manager: Any) -> Dict[int, pd.DataFrame]:
         f_max = train_y.max().item()
 
         # 2. Generate Candidates (Physical Integers)
-        candidate_pool_list = [generate_random_valid_point(config_manager) for _ in range(num_random_samples)]
+        # UPDATED: We pass 'category' here to enforce specific constraints
+        candidate_pool_list = [generate_random_valid_point(config_manager, category) for _ in range(num_random_samples)]
         candidate_pool_np = np.stack(candidate_pool_list)
         
         # 3. Calculate Normalized Volume Score (0 to 1)
-        # 0 = Smallest Volume (Good), 1 = Largest Volume (Bad)
         volumes = calculate_elliptical_volume(candidate_pool_np, thickness=THICKNESS_CONST)
         volumes_norm = (volumes - min_vol_theoretical) / (max_vol_theoretical - min_vol_theoretical)
-        volumes_norm = np.clip(volumes_norm, 0, 1) # Safety clip
+        volumes_norm = np.clip(volumes_norm, 0, 1)
 
         # 4. Calculate Strength EI
-        # Scale inputs for GP
         candidate_pool_scaled_np = (candidate_pool_np - A_PLY_MIN) / (A_PLY_MAX - A_PLY_MIN)
         candidate_pool_tensor = torch.tensor(candidate_pool_scaled_np, dtype=torch.float32)
         
@@ -151,23 +171,16 @@ def find_dual_candidate_points(config_manager: Any) -> Dict[int, pd.DataFrame]:
             sigma = predictive_dist.stddev
             ei_strength = expected_improvement(mu, sigma, f_max)
             
-        # Normalize EI to [0, 1] roughly so it competes fairly with volume
-        # EI values can be very small, so we MinMax scale them relative to the batch
+        # Normalize EI
         ei_min = ei_strength.min()
         ei_max = ei_strength.max()
         if ei_max > ei_min:
             ei_norm = (ei_strength - ei_min) / (ei_max - ei_min)
         else:
-            ei_norm = ei_strength # Handle edge case of 0 variance
+            ei_norm = ei_strength
 
         # 5. Multi-Objective Scoring
-        # We want to Maximize EI and Minimize Volume.
-        # Score = (Weight_Strength * EI_Normalized) - (Weight_Volume * Volume_Normalized)
-        
-        # Convert tensor to numpy for combination
         ei_norm_np = ei_norm.numpy()
-        
-        # Final Calculation
         final_score = ((1.0 - vol_weight) * ei_norm_np) - (vol_weight * volumes_norm)
         
         # 6. Select Best

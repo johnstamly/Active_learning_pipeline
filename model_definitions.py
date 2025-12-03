@@ -2,19 +2,24 @@ import torch
 import gpytorch
 
 class DeepKernel(torch.nn.Module):
-    def __init__(self, input_dim: int, latent_dim: int):
+    def __init__(self, input_dim: int, latent_dim: int, mlp_depth: int = 2):
         super().__init__()
-        # Hidden layer with more neurons than input (e.g., 2x input) to capture interactions
-        hidden_dim = input_dim * 2 
-        
-        self.layer1 = torch.nn.Linear(input_dim, hidden_dim)
+        dims = [input_dim]
+        dims.append(input_dim + latent_dim)
+        for k in range(2, mlp_depth):
+            dims.append(max(dims[-1] - 2, latent_dim))
+        dims.append(latent_dim)
+
         self.activation = torch.nn.Tanh() # Tanh is often smoother than ReLU for GPs
-        self.layer2 = torch.nn.Linear(hidden_dim, latent_dim)
+        self.dropout = torch.nn.Dropout(p=0.2)
+        self.layers = torch.nn.ModuleList([torch.nn.Linear(dims[i], dims[i+1]) for i in range(mlp_depth)])
         
     def forward(self, x):
-        x = self.layer1(x)
-        x = self.activation(x)
-        x = self.layer2(x)
+        for layer in self.layers[:-1]:
+            x = layer(x)
+            x = self.activation(x)
+            x = self.dropout(x)
+        x = self.layers[-1](x)
         return x
 
 class DeepKernelGP(gpytorch.models.ExactGP):

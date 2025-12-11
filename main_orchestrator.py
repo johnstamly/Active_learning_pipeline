@@ -1,12 +1,13 @@
 import os
 import shutil
 import pandas as pd
+import argparse
 from typing import Dict, Any
 
 # Import the ConfigManager
 from config_manager import ConfigManager 
 
-# Import main functions from the simple scripts (assuming they are in the same dir)
+# Import main functions from the simple scripts
 from prepare_data import load_and_prepare_data
 from train_surrogate import train_dkgp_dual_models
 from find_new_candidate_points import find_dual_candidate_points
@@ -35,12 +36,24 @@ def setup_directories(config_manager: ConfigManager):
 def main_orchestrator():
     """Executes the full three-step workflow: Prepare -> Train -> Find Candidates."""
     
+    # --- 0. PARSE ARGUMENTS ---
+    parser = argparse.ArgumentParser(description="Deep Kernel Active Learning Orchestrator")
+    parser.add_argument(
+        '--mode', 
+        type=str, 
+        choices=['active_learning', 'pure_mean', 'robust'], 
+        default='active_learning',
+        help="Mode: 'active_learning' (EI), 'pure_mean' (Exploitation), 'robust' (Safe/LCB)"
+    )
+    args = parser.parse_args()
+
     try:
         # Load the configuration immediately
         config_manager = ConfigManager(CONFIG_FILE)
         
         print("\n" + "#"*70)
         print(f"## STARTING {config_manager.get('PROJECT.NAME')} WORKFLOW ##")
+        print(f"## MODE: {args.mode.upper()} ##")
         print("#"*70)
         
         setup_directories(config_manager)
@@ -59,14 +72,15 @@ def main_orchestrator():
         
         # --- STEP 2: TRAIN SURROGATE MODELS ---
         print("\n[STEP 2/4] Executing Dual Surrogate Model Training...")
-        # Pass the config manager to train_dkgp_dual_models
         _ = train_dkgp_dual_models(config_manager)
         print("Dual Models Trained and Artifacts Saved.")
         
         # --- STEP 3: FIND NEW CANDIDATE POINTS ---
-        print("\n[STEP 3/4] Executing Candidate Finding (Bayesian Optimization)...")
-        # Pass the config manager to find_dual_candidate_points
-        candidates_found: Dict[int, pd.DataFrame] = find_dual_candidate_points(config_manager)
+        print(f"\n[STEP 3/4] Executing Candidate Finding (Mode: {args.mode})...")
+        candidates_found: Dict[int, pd.DataFrame] = find_dual_candidate_points(
+            config_manager, 
+            mode=args.mode
+        )
 
         # --- STEP 4: VISUALIZE CANDIDATES ---
         print("\n[STEP 4/4] Generating 3D Visualizations...")
@@ -78,13 +92,28 @@ def main_orchestrator():
         
         # Report the final candidates
         base_features = config_manager.get('COLUMNS.BASE_INPUT_FEATURES')
+        target_name = config_manager.get('COLUMNS.TARGET')
         
+        # Define the list of potential columns we want to see
+        potential_cols = base_features + [
+            f'Predicted_{target_name}_Unscaled', 
+            'Predicted_Volume',
+            'Multi_Obj_Score',
+            'Strategy_Score_Raw',          # Generic score column
+            'Predicted_Sigma_Unscaled',    # Specific to robust mode
+            'Selection_Mode'
+        ]
+
         if 0 in candidates_found:
             print("\nCandidate 1 (Category 0) found:")
-            print(candidates_found[0][base_features + [config_manager.get('COLUMNS.CATEGORY'), 'Predicted_Strength_Unscaled']].iloc[0])
+            # Only select columns that actually exist in the dataframe
+            valid_cols = [c for c in potential_cols if c in candidates_found[0].columns]
+            print(candidates_found[0][valid_cols].iloc[0])
+            
         if 1 in candidates_found:
             print("\nCandidate 2 (Category 1) found:")
-            print(candidates_found[1][base_features + [config_manager.get('COLUMNS.CATEGORY'), 'Predicted_Strength_Unscaled']].iloc[0])
+            valid_cols = [c for c in potential_cols if c in candidates_found[1].columns]
+            print(candidates_found[1][valid_cols].iloc[0])
         
         print("="*70)
 
@@ -92,6 +121,8 @@ def main_orchestrator():
         print("\n" + "#"*70)
         print(f"## WORKFLOW FAILED: {type(e).__name__} ##")
         print(f"Error details: {e}")
+        import traceback
+        traceback.print_exc()
         print("#"*70)
 
 if __name__ == '__main__':

@@ -1,2 +1,5 @@
 a_ply1,a_ply2,a_ply3,a_ply4,a_ply5,a_ply6,b_ply1,b_ply2,b_ply3,b_ply4,b_ply5,b_ply6,Category_C,Predicted_Strength_Unscaled,Predicted_Sigma_Unscaled,Predicted_Volume,Strategy_Score_Raw,Multi_Obj_Score,Selection_Mode
-5.0,6.0,7.0,8.0,9.0,15.0,5.0,6.0,7.0,8.0,9.0,11.0,0,71.42914362404568,2.669360648538924,2638.938,0.29499900341033936,0.4778567,robust
+5,6,7,8,9,11,5,6,7,8,9,10,0,,,,,,
+6,7,8,9,10,11,5,6,7,8,9,10,0,,,,,,
+5,6,7,9,10,13,5,6,7,8,9,10,0,,,,,,
+5,6,7,8,9,13,5,6,7,8,9,12,0,,,,,,

@@ -1,11 +1,6 @@
 """
 Visualize Composite Patches Script (3D Staircase + 2D Top View)
-
-This script generates:
-1. 3D Staircase visualizations (HTML)
-2. 2D Transparent Top-View plots (PNG)
-   - Order: Outer Ply (drawn first) -> Inner Ply (drawn last/on top)
-   - FORCED Title Mapping based on Row Index.
+UPDATED: Hardcoded Axis Limits (-21 to 21)
 """
 
 import os
@@ -25,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 # Resolution for 3D meshes
 N_ELLIPSE_POINTS = 150 
+# MANUAL LIMIT SETTING
+MANUAL_AXIS_LIMIT = 21.0
 
 # --- HELPER: 3D POINTS ---
 def create_ellipse_points(a, b, theta_deg):
@@ -136,11 +133,18 @@ def create_3d_staircase_viz(row_data, category, config_manager, title_text):
                 mode='lines', line=dict(color='black', width=4), showlegend=False, hoverinfo='skip'
             ))
 
+    # --- UPDATED: Hardcoded Axis Limits ---
+    fixed_range = [-MANUAL_AXIS_LIMIT, MANUAL_AXIS_LIMIT]
+
     fig.update_layout(
         title_text=title_text,
         scene=dict(
-            xaxis_title='X (mm)', yaxis_title='Y (mm)', zaxis_title='Ply Layer',
-            aspectmode='data', camera=dict(eye=dict(x=1.6, y=1.6, z=1.4))
+            xaxis=dict(range=fixed_range, title='X (mm)'),
+            yaxis=dict(range=fixed_range, title='Y (mm)'),
+            zaxis_title='Ply Layer',
+            aspectmode='manual',
+            aspectratio=dict(x=1, y=1, z=0.5), # Adjust Z relative to X/Y
+            camera=dict(eye=dict(x=1.6, y=1.6, z=1.4))
         ),
         margin=dict(l=0, r=0, b=0, t=50)
     )
@@ -171,7 +175,6 @@ def create_2d_ply_visualization(row_data, category, config_manager, title_text, 
     colors = ['red', 'green', 'blue', 'purple', 'orange', 'cyan']
     elips1_rotations = [0, 90, 0, 90, -45, 45] 
     
-    max_dim = 0
     legend_handles = []
 
     # 3. Draw Plies (REVERSED: Outer 6 -> Inner 1)
@@ -184,8 +187,6 @@ def create_2d_ply_visualization(row_data, category, config_manager, title_text, 
         else:
             angle = 0
             
-        max_dim = max(max_dim, a, b)
-        
         # Draw Ellipse
         e = Ellipse(xy=(0, 0), width=2*a, height=2*b, angle=angle, 
                     edgecolor=color, facecolor=color, 
@@ -198,24 +199,23 @@ def create_2d_ply_visualization(row_data, category, config_manager, title_text, 
         color = colors[i % len(colors)]
         angle = elips1_rotations[i] if (category == 'Elips1' and i < len(elips1_rotations)) else 0
         handle = mlines.Line2D([], [], color=color, marker='o', linestyle='None',
-                              markersize=10, alpha=0.6, label=f"Ply {i+1} ({angle}°)")
+                               markersize=10, alpha=0.6, label=f"Ply {i+1} ({angle}°)")
         legend_handles.append(handle)
 
-    # 5. Formatting
-    limit = max_dim * 1.2
-    ax.set_xlim(-limit, limit)
-    ax.set_ylim(-limit, limit)
+    # 5. Formatting - UPDATED: Hardcoded Limits
+    ax.set_xlim(-MANUAL_AXIS_LIMIT, MANUAL_AXIS_LIMIT)
+    ax.set_ylim(-MANUAL_AXIS_LIMIT, MANUAL_AXIS_LIMIT)
     ax.set_aspect('equal')
     
     ax.set_xlabel("X-axis (mm)", fontsize=12)
     ax.set_ylabel("Y-axis (mm)", fontsize=12)
     ax.set_title(title_text, fontsize=14, fontweight='bold', pad=15)
     
-    ax.grid(True, linestyle=':', alpha=0.6)
-    ax.axhline(0, color='black', linewidth=0.5, alpha=0.3)
-    ax.axvline(0, color='black', linewidth=0.5, alpha=0.3)
+    #ax.grid(True, linestyle=':', alpha=0.6)
+    # ax.axhline(0, color='black', linewidth=0.5, alpha=0.3)
+    # ax.axvline(0, color='black', linewidth=0.5, alpha=0.3)
     
-    ax.legend(handles=legend_handles, loc='upper right', framealpha=0.9, title="Ply Stack")
+    ax.legend(handles=legend_handles, loc='lower right', framealpha=0.9, title="Ply Stack")
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300)
@@ -239,7 +239,7 @@ def generate_candidate_visualizations(config_manager: ConfigManager):
         'Elips0': os.path.join(processed_dir, 'new_candidate_point_cat_0.csv'),
         'Elips1': os.path.join(processed_dir, 'new_candidate_point_cat_1.csv')
     }
-    
+
     try:
         for category, file_path in candidate_files.items():
             if not os.path.exists(file_path): continue
@@ -253,8 +253,7 @@ def generate_candidate_visualizations(config_manager: ConfigManager):
                 # 1. Get Category
                 cat_val = row.get(config_manager.get('COLUMNS.CATEGORY'), 'Unknown')
                 
-                # 2. GET FORCED TITLE (Based on Row Index)
-                # Ensure cat_val is passed correctly from the row
+                # 2. GET FORCED TITLE
                 run_title = get_run_title(cat_val, idx)
                 
                 # Safe Filename

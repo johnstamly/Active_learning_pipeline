@@ -39,8 +39,8 @@ MODEL:
 
 # --- Bayesian Optimization Parameters (find_new_candidate_points.py) ---
 OPTIMIZATION:
-  NUM_RANDOM_SAMPLES: 1000000 # Number of points to search for EI max
-  THICKNESS_CONSTANT: 0.186
+  NUM_RANDOM_SAMPLES: 2000000 # Canonical for headline runs (paper Sec 3.5)
+  THICKNESS_CONSTANT: 2.0      # Ply thickness in mm; matches update_data.py and Excel Volume column
   # Search Bounds (Integers only)
   A_PLY_MIN: 5
   A_PLY_MAX: 35

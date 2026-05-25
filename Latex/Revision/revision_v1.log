@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.11)  25 MAY 2026 14:59
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.11)  25 MAY 2026 23:56
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1103,7 +1103,7 @@ dist/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc}] [4]
 LaTeX Font Info:    Font shape `T1/ntxtlf/m/n' will be
 (Font)              scaled to size 6.6pt on input line 201.
  [5]
-<../Section21_Schematic.png, id=193, 854.89388pt x 341.47575pt>
+<../Section21_Schematic.png, id=194, 854.89388pt x 341.47575pt>
 File: ../Section21_Schematic.png Graphic file (type png)
 <use ../Section21_Schematic.png>
 Package pdftex.def Info: ../Section21_Schematic.png  used on input line 223.
@@ -1189,21 +1189,21 @@ LaTeX Font Info:    Font shape `T1/ntxtlf/m/n' will be
 LaTeX Font Info:    Font shape `T1/ntxtlf/m/n' will be
 (Font)              scaled to size 6.1pt on input line 223.
  [6 <../Section21_Schematic.png>]
-<../FEA_Boundary_Conditions.jpg, id=205, 3008.23875pt x 2534.46875pt>
+<../FEA_Boundary_Conditions.jpg, id=206, 3008.23875pt x 2534.46875pt>
 File: ../FEA_Boundary_Conditions.jpg Graphic file (type jpg)
 <use ../FEA_Boundary_Conditions.jpg>
 Package pdftex.def Info: ../FEA_Boundary_Conditions.jpg  used on input line 233
 .
 (pdftex.def)             Requested size: 409.71692pt x 345.155pt.
+ [7 <../FEA_Boundary_Conditions.jpg>]
 LaTeX Font Info:    Font shape `T1/ntxtlf/b/it' will be
 (Font)              scaled to size 12.0pt on input line 252.
- [7] [8 <../FEA_Boundary_Conditions.jpg>] [9]
-<../Algorithm_Flow.jpg, id=239, 2826.56pt x 1541.76pt>
+<../Algorithm_Flow.jpg, id=226, 2826.56pt x 1541.76pt>
 File: ../Algorithm_Flow.jpg Graphic file (type jpg)
 <use ../Algorithm_Flow.jpg>
 Package pdftex.def Info: ../Algorithm_Flow.jpg  used on input line 302.
 (pdftex.def)             Requested size: 455.24411pt x 248.30989pt.
- [10 <../Algorithm_Flow.jpg>] [11]
+ [8] [9] [10 <../Algorithm_Flow.jpg>] [11]
 <../model_architecture.png, id=260, 433.62pt x 433.62pt>
 File: ../model_architecture.png Graphic file (type png)
 <use ../model_architecture.png>
@@ -1287,52 +1287,52 @@ Package pdftex.def Info: ../performance_triplet_cat1.png  used on input line 62
 (pdftex.def)             Requested size: 455.24411pt x 284.29875pt.
  [19] [20 <../parameter_evolution_cat0.png> <../performance_triplet_cat0.png>] 
 [21 <../parameter_evolution_cat1.png> <../performance_triplet_cat1.png>]
-<../Failed_Debonding_27kN.png, id=382, 343.2825pt x 229.60782pt>
+<../Failed_Debonding_27kN.png, id=383, 343.2825pt x 229.60782pt>
 File: ../Failed_Debonding_27kN.png Graphic file (type png)
 <use ../Failed_Debonding_27kN.png>
 Package pdftex.def Info: ../Failed_Debonding_27kN.png  used on input line 650.
 (pdftex.def)             Requested size: 223.07211pt x 149.20126pt.
-<../Optimal_Bond_71kN.png, id=383, 344.03531pt x 229.60782pt>
+<../Optimal_Bond_71kN.png, id=384, 344.03531pt x 229.60782pt>
 File: ../Optimal_Bond_71kN.png Graphic file (type png)
 <use ../Optimal_Bond_71kN.png>
 Package pdftex.def Info: ../Optimal_Bond_71kN.png  used on input line 657.
 (pdftex.def)             Requested size: 223.07211pt x 148.87544pt.
-<../top_view_Cat0.0_Row0.png, id=384, 578.16pt x 578.16pt>
+<../top_view_Cat0.0_Row0.png, id=385, 578.16pt x 578.16pt>
 File: ../top_view_Cat0.0_Row0.png Graphic file (type png)
 <use ../top_view_Cat0.0_Row0.png>
 Package pdftex.def Info: ../top_view_Cat0.0_Row0.png  used on input line 675.
 (pdftex.def)             Requested size: 218.51521pt x 218.5121pt.
-<../top_view_Cat0.0_Row1.png, id=385, 578.16pt x 578.16pt>
+<../top_view_Cat0.0_Row1.png, id=386, 578.16pt x 578.16pt>
 File: ../top_view_Cat0.0_Row1.png Graphic file (type png)
 <use ../top_view_Cat0.0_Row1.png>
 Package pdftex.def Info: ../top_view_Cat0.0_Row1.png  used on input line 682.
 (pdftex.def)             Requested size: 218.51521pt x 218.5121pt.
-<../top_view_Cat0.0_Row2.png, id=386, 578.16pt x 578.16pt>
+<../top_view_Cat0.0_Row2.png, id=387, 578.16pt x 578.16pt>
 File: ../top_view_Cat0.0_Row2.png Graphic file (type png)
 <use ../top_view_Cat0.0_Row2.png>
 Package pdftex.def Info: ../top_view_Cat0.0_Row2.png  used on input line 692.
 (pdftex.def)             Requested size: 218.51521pt x 218.5121pt.
-<../top_view_Cat0.0_Row3.png, id=387, 578.16pt x 578.16pt>
+<../top_view_Cat0.0_Row3.png, id=388, 578.16pt x 578.16pt>
 File: ../top_view_Cat0.0_Row3.png Graphic file (type png)
 <use ../top_view_Cat0.0_Row3.png>
 Package pdftex.def Info: ../top_view_Cat0.0_Row3.png  used on input line 699.
 (pdftex.def)             Requested size: 218.51521pt x 218.5121pt.
-<../top_view_Cat1.0_Row0.png, id=388, 578.16pt x 578.16pt>
+<../top_view_Cat1.0_Row0.png, id=389, 578.16pt x 578.16pt>
 File: ../top_view_Cat1.0_Row0.png Graphic file (type png)
 <use ../top_view_Cat1.0_Row0.png>
 Package pdftex.def Info: ../top_view_Cat1.0_Row0.png  used on input line 714.
 (pdftex.def)             Requested size: 218.51521pt x 218.5121pt.
-<../top_view_Cat1.0_Row1.png, id=389, 578.16pt x 578.16pt>
+<../top_view_Cat1.0_Row1.png, id=390, 578.16pt x 578.16pt>
 File: ../top_view_Cat1.0_Row1.png Graphic file (type png)
 <use ../top_view_Cat1.0_Row1.png>
 Package pdftex.def Info: ../top_view_Cat1.0_Row1.png  used on input line 721.
 (pdftex.def)             Requested size: 218.51521pt x 218.5121pt.
-<../top_view_Cat1.0_Row2.png, id=390, 578.16pt x 578.16pt>
+<../top_view_Cat1.0_Row2.png, id=391, 578.16pt x 578.16pt>
 File: ../top_view_Cat1.0_Row2.png Graphic file (type png)
 <use ../top_view_Cat1.0_Row2.png>
 Package pdftex.def Info: ../top_view_Cat1.0_Row2.png  used on input line 731.
 (pdftex.def)             Requested size: 218.51521pt x 218.5121pt.
-<../top_view_Cat1.0_Row3.png, id=391, 578.16pt x 578.16pt>
+<../top_view_Cat1.0_Row3.png, id=392, 578.16pt x 578.16pt>
 File: ../top_view_Cat1.0_Row3.png Graphic file (type png)
 <use ../top_view_Cat1.0_Row3.png>
 Package pdftex.def Info: ../top_view_Cat1.0_Row3.png  used on input line 738.
@@ -1354,11 +1354,11 @@ Package rerunfilecheck Info: File `revision_v1.out' has not changed.
 (rerunfilecheck)             Checksum: 1E5D019934AB905CDD8A062249207331;5503.
  ) 
 Here is how much of TeX's memory you used:
- 19660 strings out of 467524
- 309129 string characters out of 5423188
- 740134 words of memory out of 5000000
+ 19658 strings out of 467524
+ 309095 string characters out of 5423188
+ 741134 words of memory out of 5000000
  47877 multiletter control sequences out of 15000+600000
- 790525 words of font info for 381 fonts, out of 8000000 for 9000
+ 790436 words of font info for 380 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  83i,10n,131p,1948b,707s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <d:/texlive/2026/texmf-dist/fonts/type1/public/newtx/NewTXMI.pfb><d:/texlive/
@@ -1371,10 +1371,10 @@ f-dist/fonts/type1/public/newtx/txsys.pfb><d:/texlive/2026/texmf-dist/fonts/typ
 e1/public/newtx/ztmb.pfb><d:/texlive/2026/texmf-dist/fonts/type1/public/newtx/z
 tmbi.pfb><d:/texlive/2026/texmf-dist/fonts/type1/public/newtx/ztmr.pfb><d:/texl
 ive/2026/texmf-dist/fonts/type1/public/newtx/ztmri.pfb>
-Output written on revision_v1.pdf (30 pages, 7335846 bytes).
+Output written on revision_v1.pdf (30 pages, 7335548 bytes).
 PDF statistics:
- 558 PDF objects out of 1000 (max. 8388607)
- 452 compressed objects within 5 object streams
+ 559 PDF objects out of 1000 (max. 8388607)
+ 453 compressed objects within 5 object streams
  138 named destinations out of 1000 (max. 500000)
  51503 words of extra memory for PDF output out of 51595 (max. 10000000)
 

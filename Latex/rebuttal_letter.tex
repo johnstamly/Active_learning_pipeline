@@ -1,0 +1,229 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{a4paper,left=25mm,right=25mm,top=25mm,bottom=25mm}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\setlist{nosep}
+\usepackage{parskip}
+
+% Match the manuscript's change-tracking colour
+\newcommand{\new}[1]{\textcolor{blue}{#1}}
+
+% Reviewer / response macros
+\newcommand{\rev}[1]{\par\noindent\textit{\small #1}\par\smallskip}
+\newcommand{\resp}{\par\noindent\textbf{Response:}\space}
+\newcommand{\pending}[1]{\par\noindent\textcolor{gray}{\textit{[pending --- Step \##1]}}\par}
+
+\title{Response to Reviewers\\\large Manuscript JCOMA-25-4218 ---
+``Deep Kernel Bayesian Optimization for the Design of Stepped Composite Repairs under Compression''}
+\author{G.~Stamatelatos, E.~Billaudeau, M.~Sergolle, T.~Balutch,\\
+V.~Kostopoulos, T.~Loutas, S.~Psarras}
+\date{}
+
+\begin{document}
+\maketitle
+
+We thank both reviewers for their careful reading and constructive comments. Each point is addressed below. All textual changes in the revised manuscript (\texttt{revision\_v1.tex}) appear in \new{blue}; figure and table modifications are listed in the corresponding response. Line numbers refer to the revised file.
+
+\medskip
+\hrule
+\medskip
+
+% =====================================================================
+\section*{Reviewer 1}
+
+\subsection*{1. Finite-element modelling detail}
+\rev{``The authors need to give more description on how the laminate was modelled. Were the layers modelled explicitly in the base laminate and the repaired part?''}
+\resp Both laminates were modelled with explicit through-thickness discretisation; we have now stated this directly. The sentence in Section~2.2 (line 227 of the revised file) has been expanded to read: \new{``The parent laminate and the repair patch were modelled with 8-node continuum shell elements with reduced integration (SC8R), discretised explicitly through the thickness. The patch (layup $[0^\circ/90^\circ/0^\circ/90^\circ/-45^\circ/45^\circ]$) was modelled with one SC8R element per ply (six elements). The parent (layup $[45^\circ/-45^\circ/90^\circ/0^\circ/90^\circ/0^\circ/90^\circ/-45^\circ/45^\circ]$) was modelled with one SC8R element per ply for the upper six plies --- i.e.\ the plies that lie in the repair zone --- and a single sub-laminate element grouping the lower three plies, which remain intact below the damage depth (seven elements total). The adhesive layer was modelled with zero-thickness cohesive elements (COH3D8) inserted between the parent and patch steps.''} The plies that participate in the repair interface are therefore each represented by their own element, while the always-intact lower three plies of the parent are grouped into a single sub-laminate element for computational efficiency.
+
+\subsection*{2. Deep Kernel framework --- formal rigour}
+
+\subsubsection*{2a. Notation for the feature extractor (Section~3.1, Eq.~6)}
+\rev{``Notation for the feature extractor is inconsistent -- sometimes $h(x, w)$ and sometimes just $h(x)$. Parameters $W$ are not introduced. Function $\varphi$ is also not identified which makes Eq.~(6) incomplete.''}
+\resp All three notational issues have been fixed. Section~3.1 now (i) uses the parameterised form $h(\mathbf{x}; \mathbf{w})$ consistently in the body text and in Eq.~(6); (ii) introduces the parameter set explicitly --- \new{``The parameter set $\mathbf{w} = \{\mathbf{W}_l, \mathbf{b}_l\}_{l=1}^{L}$ collects the $L$ weight matrices and bias vectors of the DNN and is learned jointly with the GP hyperparameters.''} --- and (iii) names the activation function after Eq.~(6): \new{``where $\phi(\cdot)$ denotes the element-wise Gaussian Error Linear Unit (GELU) activation.''} The equation itself has been retyped so that the layer composition is unambiguous (replacing a stray ``$\cdot$'' between $\mathbf{W}_L$ and the inner expression with explicit nested $\phi(\cdot)$ calls).
+
+\subsubsection*{2b. Eq.~(7) --- define $z$}
+\rev{``Page 9, equation (7): define variable $z$.''}
+\resp A definition sentence has been added immediately after Eq.~(7): \new{``$\mathbf{z}, \mathbf{z}' \in \mathbb{R}^3$ are two latent feature vectors produced by the DNN (Eq.~(6)), $\sigma_f^2$ is the signal variance, and $\ell$ is a global length-scale parameter.''}
+
+\subsubsection*{2c. Eq.~(8) --- define $z$ and $z_i$}
+\rev{``Page 9, equation (8) -- define variables $z$ and $z_i$.''}
+\resp The Phase~II paragraph has been rewritten so that every symbol in Eq.~(8) is defined explicitly: \new{``where $d = \|\mathbf{z}-\mathbf{z}'\|/\ell$ is the Euclidean distance in the latent space normalised by a single length-scale $\ell$, and $\mathbf{z}, \mathbf{z}' \in \mathbb{R}^3$ are the latent feature vectors of Eq.~(6).''} The per-dimension subscript $z_i$ and $\ell_i$ that appeared in the original weighted form of $d$ are no longer present (see response to point~2e below for the underlying reason).
+
+\subsubsection*{2d. $C^2$ continuity vs sharp drops}
+\rev{``Page 9, paragraph 2 -- $C^2$ continuity is still quite smooth -- up to the 2nd derivative. How can it capture sharp drops?''}
+\resp The reviewer is correct: a $C^2$ kernel is not formally capable of representing discontinuities, and the original claim that the Mat\'ern~5/2 prior is ``essential for capturing sudden strength drops'' overstated this. The Phase~II paragraph has been rewritten to give the correct argument: rather than ``capturing sharp drops'', the Mat\'ern~5/2 covariance \emph{decays more rapidly with distance} than the RBF prior. The revised text now reads: \new{``Although both the RBF and the Mat\'ern~5/2 priors yield smooth sample paths (with $C^{\infty}$ and $C^2$ continuity, respectively), the Mat\'ern~5/2 covariance decays more rapidly with distance: nearby latent points remain strongly coupled, while far-away points decouple faster than under the RBF prior. This shorter effective correlation range is better matched to the present problem, where the strength response varies rapidly --- but continuously --- around the onset of premature adhesive debonding (Section~4); the $C^{\infty}$ RBF prior would over-smooth these steep local gradients.''} The relevant physical bifurcation (intact $\rightarrow$ debonded patch) is therefore modelled as a steep but continuous transition, not as a true discontinuity.
+
+\subsubsection*{2e. ARD never explained}
+\rev{``Page 9, paragraph 2 -- `with Automatic Relevance Determination (ARD)' -- what does it do? There does not seem to be an explanation anywhere in the text.''}
+\resp The reviewer raises a valid concern. During development of the surrogate we considered both isotropic and Automatic Relevance Determination (ARD) variants of the Mat\'ern~5/2 kernel. With ARD, the GP infers a separate length-scale per latent dimension, adding $D=3$ extra hyperparameters to be identified from a small training set (38--92 high-fidelity evaluations per category at convergence). In our low-data regime this additional flexibility did not stabilise during marginal-likelihood optimisation --- the per-dimension length-scales tended to drift toward similar values rather than separating into well-distinguished ``relevance'' weights --- and the resulting validation performance was not consistently better than that of the isotropic kernel. We therefore retained the more parsimonious isotropic form for the deployed Phase~II model. The ``(ARD)'' designation in the original manuscript and in Table~3 was a vestige of an earlier version of the kernel configuration, before this design choice was finalised; it has been removed, and Eq.~(8), the Phase~II paragraph in Section~3.2, and Table~3 are now consistent and describe the isotropic Mat\'ern~5/2 kernel actually deployed. To make this choice visible inside the paper itself, a closing sentence has been added at the end of the Phase~II paragraph (line 346 of the revised file): \new{``Both isotropic and ARD variants of this kernel were tested during development; the isotropic form was retained as more parsimonious in the present low-data regime.''} We agree with the reviewer's implicit observation that ARD could become advantageous in regimes with substantially larger datasets or higher latent dimensionality, and we mention this as a direction for future work.
+
+\subsubsection*{2f. Eq.~(9) --- define $\alpha(\mathbf{x})$ and $y_{\text{best}}^+$}
+\rev{``Page 11, paragraph 2, before Eq.~(9) -- the equation does not define $\alpha(\mathbf{x})$. Variable $y_{\text{best}}^+$ is not defined.''}
+\resp Both issues have been addressed. The Section~3.4 paragraph now names the acquisition function explicitly --- \new{``The standard Expected Improvement acquisition function $\alpha(\mathbf{x})$ is computed as:''} --- and the equation itself now uses $\alpha(\mathbf{x})$ on the left-hand side: \new{$\alpha(\mathbf{x}) =$}$(\mu(\mathbf{x}) - y_{\text{best}}^+)\Phi(Z) + \sigma(\mathbf{x})\phi(Z)$. The definition of $y_{\text{best}}^+$ has been inserted in the where-clause that follows: \new{``$y_{\text{best}}^+ = \max_{i=1,\dots,N}\, y_i$ is the best objective value observed across the $N$ designs already evaluated.''}
+
+\subsection*{3. Section 4.3 ``rapid cooling''}
+\rev{``Figure 6a shows a `heatmap' of the model parameters. While this is certainly one way to represent solutions (not sure it is a good one), I do not understand the argument about `rapid cooling' effect. There is no visible uniform decline in the `temperature'. Could the authors elaborate?''}
+\resp We agree with the reviewer that the ``rapid cooling'' metaphor was misleading: simulated annealing connotations do not apply to Bayesian optimisation with Expected Improvement, and the heatmap does not in fact show a uniform decline in any quantity that could be called a ``temperature''. The metaphor has been removed and the Section~4.3 description rewritten in literal terms (line 636 of the revised file). The new text reads: \new{``Figure~6 of the manuscript(a) shows that in the warm-start region (left of the white dashed line, 38 designs from the prior parametric study) the design space is dominated by bright bands in the outer patch-ply parameters $a_5, a_6, b_5, b_6$ --- i.e.\ the prior parametric study explored large patches. Once the active-learning loop takes over (right of the white dashed line), the proposed designs settle within $\sim$20 iterations into a stable, low-variance configuration concentrated in the small-dimension regime; the optimal candidate is identified at Run 8 (vertical red line). The performance triplet in Fig.~6 of the manuscript(b) confirms this: the strength-to-volume ratio peaks sharply at Run 8 and the design lock-on is visible as nearly-flat parameter traces beyond Run~20.''} The Category~1 paragraph has been similarly rewritten so that the description tracks what is visually present in the heatmap rather than relying on an annealing analogy.
+
+\subsection*{4. Wording and minor issues}
+
+\subsubsection*{4.1. Abstract ``the agent''}
+\rev{``In abstract `the agent' -- what is the agent at this point? It might be better to use a less ambiguous wording (framework? Algorithm?).''}
+\resp We replaced the term in the abstract with the more concrete framework label and reserved ``agent'' for cases where an explicit definition is provided. In the abstract (line 115) the sentence now reads: ``Crucially, \new{the framework} autonomously identified a physical efficiency limit\ldots''. Five further occurrences of ``Deep Kernel agent''/``the agent'' in the body of the paper have been replaced with one of \{\new{Deep Kernel surrogate}, \new{DKGP-driven active learning loop}, \new{DKGP}, \new{loop}, \new{surrogate-driven search}, \new{optimization}\}, chosen by context.
+
+\subsubsection*{4.2. ``Intelligent methods''}
+\rev{``Page 2, paragraph 3 `intelligent methods for composite optimization' -- what make a method `intelligent'? I suggest using the word `advanced' at least.''}
+\resp Replaced with \new{advanced computational methods} (line 156).
+
+\subsubsection*{4.3. ``Proposed for woven microstructures''}
+\rev{``Page 2, paragraph 3 `deep reinforcement learning strategies have also been proposed for woven microstructures'. Proposed to do what?''}
+\resp Clarified the scope of the cited work (Hsu et al., \emph{Materials \& Design} 2025). The sentence now reads: ``\ldots deep reinforcement learning strategies have also been proposed for \new{the optimization of woven composite microstructures}'' (line 156).
+
+\subsubsection*{4.4. LHS framing}
+\rev{``Page 2, paragraph 3 `lack the ability to adaptively focus resources on high-performance regions' -- elaborate. LHS is a sampling method, not an optimisation algorithm.''}
+\resp The reviewer is correct that LHS is a sampling, not an optimisation, technique; the original wording incorrectly attributed an active capability to it. The sentence has been rewritten (line 156) to: \new{``Similarly, although static sampling techniques such as Latin Hypercube Sampling (LHS) offer robust space-filling properties, they are non-adaptive by construction: the full sample set is fixed a priori, so a surrogate built on LHS data has no mechanism to redirect subsequent evaluations toward high-performance regions of the design space.''}
+
+\subsubsection*{4.5. ``Standard neural networks''}
+\rev{``Page 2, last paragraph: `Standard Neural Networks' -- what is standard neural network? Feed-forward NN?''}
+\resp Specified explicitly: \new{feed-forward neural networks (NNs)} (line 160).
+
+\subsubsection*{4.6. ``Smoothness prior''}
+\rev{``Page 4, paragraph 2: `enforce a smoothness prior that' -> smoothness of a prior?''}
+\resp The Bayesian framing was unnecessary here; we now use a more standard mathematical phrasing: \new{``\ldots typically impose a strong smoothness assumption that is ill-suited\ldots''} (line 163).
+
+\subsubsection*{4.7. ``Deep Neural Network (MLP)''}
+\rev{``Page 4, paragraph 3: `This hybrid architecture utilizes a Deep Neural Network (MLP)' -- MLP is not an abbreviation of `Deep Neural Network'.''}
+\resp Acknowledged --- MLP (multilayer perceptron) was used inconsistently with the DNN expansion. The paragraph in Section~3.1 (line 165) now reads ``\ldots utilizes a \new{deep neural network (DNN)} as a non-linear feature extractor\ldots Effectively, the \new{DNN} learns an optimal kernel metric\ldots''. The label ``Shallow MLP'' in Table~2 has been retained because there it denotes a specific topological choice (a shallow fully-connected network) contrasted with the deeper ResNet topology, rather than the abbreviation expansion.
+
+\subsubsection*{4.8. ``Uncertainty signal''}
+\rev{``Page 4, paragraph 3: `uncertainty signal' -- what is an uncertainty signal? What does constitute a signal in this work?''}
+\resp Replaced the loose term with the precise quantity it referred to (the GP posterior variance). The sentence now reads: ``\new{The resulting posterior variance} is critical for guiding the \new{Bayesian active learning loop} to efficiently navigate the sparse feasible region\ldots'' (line 165).
+
+\subsubsection*{4.9. ``Deep Kernel agent''}
+\rev{``Page 4, paragraph 4: `optimized by a Deep Kernel agent' -- what is a Deep Kernel agent? If you want to use a word agent, then it would be good define what constitutes it.''}
+\resp We agree the term ``agent'' was used without prior definition and have removed it everywhere it appeared as a free-standing label. See item~4.1 above for the full list of replacements.
+
+\subsubsection*{4.10. ``Upper six plies'' --- schematic}
+\rev{``Page 4, paragraph 3: `extending through the upper six plies' -- it is not clear what is the `upper' or `lower' side here. Either add a schematic or add a sentence that introduces a direction.''}
+\resp Both fixes have been applied. (i)~A clarifying parenthetical has been inserted at the first mention of the damage depth (line 178 of the revised file): \new{```upper' denotes the impact / loading-side surface; see Figure~2 of the manuscript (panel~(a)) for a side cross-section''}. The numerical damage depth has also been corrected from the original ``5~mm'' to \new{$\approx 1.1$\,mm (six plies of $0.186$\,mm cured prepreg thickness, consistent with the value used for the same material system in Psarras et al., 2020)} --- the previous ``5~mm'' figure was inconsistent with the per-ply thickness and is removed. (ii)~A new schematic figure has been added at the end of Section~2.1. Its panel~(a) is a side cross-section of the laminate showing all nine parent plies as intact (light blue), the central stepped patch (orange) occupying the excavated region, the upper face labelled at the top of the stack with a downward arrow, a left-side upward arrow labelled ``ply numbering'' with tick marks for $\text{ply}_1$ to $\text{ply}_6$ (innermost to outermost), the corrected $\approx 1.1$\,mm damage depth bracket on the right, and the compressive loading direction at the bottom. Together these resolve the directional ambiguity for any reader.
+
+\subsubsection*{4.11. Material identification (IMS 24K 977-2)}
+\rev{``Page 4, paragraph 3: `Graphite/Epoxy UD IMS 24K 977-2.' There is not enough data to identify the material. Which IMS fibres? Is 977-2 an epoxy resin? State the manufacturer.''}
+\resp The material has been identified more precisely in Section~2.1 (line 178). The original sentence ``Both the parent plate and the repair patch are modeled using Graphite/Epoxy UD IMS 24K 977-2'' has been replaced with: \new{``Both the parent plate and the repair patch are modeled using Cytec/Solvay CYCOM 977-2 unidirectional toughened-epoxy prepreg with IMS 24K carbon-fibre reinforcement.''} The resin is therefore the CYCOM~977-2 toughened-epoxy system originally developed by Cytec and currently supplied by Solvay; the reinforcement is an intermediate-modulus (IMS) carbon fibre in a 24\,000-filament tow; the material is delivered as a unidirectional prepreg.
+
+\subsubsection*{4.12. ``To enable AI-driven optimization''}
+\rev{``Page 4, paragraph 5: `To enable AI-driven optimization' -- is this parameterisation specific to AI-driven optimisation or can it be used in any other optimisation method?''}
+\resp Correct --- the parameterisation is general. The framing clause has been removed; the paragraph at line 182 now simply reads: \new{``The repair geometry is parameterized into a design vector $\mathbf{x}$.''}
+
+\subsubsection*{4.13. Section 3.1 first paragraph --- move to introduction}
+\rev{``Page 8, paragraph 1: It might better sit in the introduction than here.''}
+\resp We agree. The original first sentence of Section~3.1 (``Standard Gaussian Processes (GPs) often struggle with high-dimensional inputs due to the `curse of dimensionality' in kernel space'') was redundant with the introduction, which already discusses the limitations of standard GPs in Section~1 (the paragraph beginning ``Conversely, Gaussian Processes (GPs) provide a principled Bayesian framework\ldots Yet, standard GPs struggle with both the `curse of dimensionality' and the complexity of the physical response''). The redundant sentence has been removed from Section~3.1, and the remainder of the paragraph has been rewritten as a back-reference: \new{``To address the curse-of-dimensionality limitation of standard Gaussian Processes (Section~1), we utilize a Deep Kernel Learning (DKL) approach.''} Section~3.1 now opens directly with the model construction, while the motivating discussion stays in the introduction where the reviewer suggested it belongs.
+
+\subsubsection*{4.14. ``Category 0 and 28'' typo}
+\rev{``Page 11, section 3.5: `from a previous parametric study [3] for Category 0 and 28' -- is it a typo and it is supposed to be `Category 0 and 2'?''}
+\resp Yes, this was a typo; the missing words ``\ldots designs for Category 0 and 28 \emph{for Category~1}'' had been dropped. The sentence (line 408) now reads: ``\ldots seeded with \new{high-fidelity evaluations from a previous parametric study (Psarras et al., 2024): 38 designs for Category 0 and 28 for Category 1,} providing a robust baseline of competent designs.''
+
+\subsubsection*{4.15. ``Automated orchestrator''}
+\rev{``Page 11, last paragraph: `acting as an automated orchestrator' -- I would recommend rewriting it in more appropriate language.''}
+\resp Rewritten (line 417): ``The active learning framework was \new{implemented in Python and automates the exchange of designs and responses between the surrogate and the finite element solver.}''
+
+\subsubsection*{4.16. RMSE without context}
+\rev{``Page 12, section 3.7: RMSE values are given without a context. What is the typical Ultimate Compression Strength for the laminates?''}
+\resp A sentence providing the operational context has been added immediately after the first RMSE value is reported in Section~3.7 (line 432 of the revised file): \new{``To contextualise these errors, the pristine parent laminate has a compressive strength of approximately 75\,kN and the strength-recovery limit observed in our dataset is approximately 71.2\,kN (Section~4), so the proposed model's RMSE of 8.91\,kN corresponds to roughly 12\% of the operational strength range.''} The reader can now interpret all subsequent RMSE values in Table~4 relative to this 75/71.2~kN range.
+
+\subsubsection*{4.17. Define NLL}
+\rev{``Page 13, table 4: Explain what NLL is and why this metric is needed here.''}
+\resp The Table~4 caption has been expanded with a definition: \new{``NLL = negative log-likelihood of the validation set under the learned GP posterior; lower is better. It measures predictive \emph{calibration} (the quality of the uncertainty estimate) in addition to predictive \emph{accuracy} (captured by RMSE) --- a model can have low RMSE but a high NLL if its predicted uncertainties are too narrow or too wide.''} The metric is included because, for a probabilistic surrogate (the GP), uncertainty calibration is as important as point-prediction accuracy: the acquisition function uses the predicted $\sigma(\mathbf{x})$ directly, so a model that under- or over-estimates uncertainty will mis-direct the active-learning loop even if its mean predictions are accurate.
+
+\subsubsection*{4.18. ``Efficiency frontier'' vs Pareto front}
+\rev{``Page 13, section 4: `final converged efficiency frontier' -- what is efficiency frontier? How does it differ from Pareto front?''}
+\resp We deliberately use \emph{efficiency frontier} rather than \emph{Pareto front} for two technical reasons: (i) the L-shaped envelope plotted in the Category~0 and Category~1 result figures (Section~4.1 of the manuscript) includes saturated designs on the horizontal leg that are formally dominated by the knee design and would therefore be \emph{excluded} from a strict Pareto-non-dominance set; (ii) the underlying acquisition function (Eq.~(9)) is a weighted scalarisation, not a Pareto-based multi-objective method. To make this explicit, we have added the following clarification on first use in Section~4 (line 457 of the revised manuscript): \new{``We use the term \emph{efficiency frontier} rather than \emph{Pareto front}: the L-shape contains saturated designs that are formally dominated by the knee, and the underlying acquisition function (Eq.~(9)) is a weighted scalarisation rather than a Pareto-based method.''}
+
+\subsubsection*{4.19. ``Runs'' in Tables 5 and 6}
+\rev{``Page 16, section 4.2: It is not clear what do `runs' in Tables 5 and 6 refer to. Is it iteration of the active learning algorithm?''}
+\resp The reviewer is correct that ``Run~$N$'' refers to the $N$-th active-learning iteration. To make this explicit, a definition has been added to the Section~4.2 intro paragraph (line 532 of the revised file), immediately after Tables~5 and~6 are first cited: \new{``In what follows, `Run~$N$' refers to the $N$-th active-learning iteration (counting the first FEM evaluation proposed by the surrogate as Run~1), while `Init.\,Spec.~$K$' refers to the $K$-th design from the warm-start dataset (the 38 Category~0 and 28 Category~1 seed designs from the prior parametric study).''} The same naming convention now appears consistently in Tables~5 and~6 and in the Section~4.3 narrative.
+
+\subsubsection*{4.20. ``Inverse design problem''}
+\rev{``Page 23, paragraph 1 in section 5: `navigated the inverse design problem'. I think that strictly speaking this is not an inverse design problem. It is an optimisation problem.''}
+\resp Agreed; the conclusion now reads (line 777): ``\ldots the framework successfully \new{solved the constrained optimization problem}, identifying optimal repair geometries\ldots''.
+
+\medskip
+\hrule
+\medskip
+
+% =====================================================================
+\section*{Reviewer 2}
+
+\subsection*{1. Hard constraint (3) --- illustration}
+\rev{``Description of hard constraint (3) on page 5 is not clear, can the authors please clarify, or provide an illustration?''}
+\resp An illustration has been added to Section~2.1 (Figure~2 of the manuscript, panel~(b)). The panel shows a \emph{plan view} (orthographic projection onto the laminate plane) of two consecutive patch plies in a Category~1 (mixed-orientation) repair, with the inner ply $i$ oriented at $0^{\circ}$ and the outer ply $i+1$ rotated by $90^{\circ}$. Constraint~(3) requires that the inner-ply major axis $a_i$ (blue) be no greater than the outer-ply minor axis $b_{i+1}$ in the same direction (red). The panel contrasts a \emph{valid} configuration on the left ($a_i \leq b_{i+1}$, inner patch ply fully within the laser-accessible region of the rotated outer patch ply) with a \emph{violating} configuration on the right ($a_i > b_{i+1}$, in which the inner patch ply would extend beyond the rotated outer patch ply on both lateral edges, into red-shaded regions that the laser cannot reach from above). To make explicit \emph{why} this constraint is a hard geometric requirement (not merely a design preference), the Section~2.1 text of the constraint~(3) item has also been expanded to state the manufacturing rationale: \new{``--- the patch cavity is scarfed by the laser proceeding top-down, from the outermost patch ply ($\text{ply}_6$, at the upper face) inward to the innermost patch ply ($\text{ply}_1$, at the parent interface), and the laser can only remove material it can physically reach from above ---''}. The figure caption mirrors this rationale, so a reader looking only at the figure understands that the violating configuration is geometrically infeasible, not merely suboptimal. A pointer to the illustration has been added at the end of the constraint~(3) item in Section~2.1 (line 208 of the revised file): \new{``Figure~2 of the manuscript (panel~(b)) illustrates this constraint by contrasting a valid configuration ($a_i \leq b_{i+1}$, inner patch ply fully within the laser-accessible region) with a violating one ($a_i > b_{i+1}$, lateral region inaccessible to the laser at the rotated edges).''}
+
+\subsection*{2. Table~1 unit typos}
+\rev{``In Table~1, there is a typo in the unit for Elastic Stiffnesses, e.g.\ normal stiffness should be 100~kN/mm$^3$, not 100~N/mm. The latter is way too low. The same goes for shear stiffness. For consistency, please use N/mm for fracture energy in Cohesive Damage Evolution, instead of J/m$^2$.''}
+\resp The reviewer is correct on both counts. The original values reported in Table~1 contained a typographical error in the unit for the cohesive elastic stiffnesses: the Abaqus input deck used \new{100~kN/mm$^3$} and \new{35~kN/mm$^3$}, not 100~N/mm$^3$ and 35~N/mm$^3$. Table~1 has been corrected accordingly. For consistency with the lamina fracture energies, the cohesive critical fracture energies have been converted from J/m$^2$ to N/mm: $G_{Ic} = $ \new{0.4~N/mm} (originally 400~J/m$^2$) and $G_{IIc} = $ \new{0.6~N/mm} (originally 600~J/m$^2$). The underlying numerical values in the .inp file are unchanged; only the units used to report them in the manuscript have been corrected.
+
+\subsection*{3. Define Category~0 / Category~1 inline}
+\rev{``Can you please define what you mean by Category~0 and 1 directly inline in Section~2.1? In Section~3.5 point~1, what is Category~38? In Tables~5 and~6, Category~0 and~1 are referred to as standard optimisation and complex geometry, respectively. What are these cases?''}
+\resp We agree the vocabulary was muddled; the same pair of cases was referred to as ``Standard/Complex'' in the table captions, ``Aligned/Mixed Orientation'' in the constraint subsections, and only ``Category~0/1'' elsewhere, without any single physical anchor. We have unified the vocabulary as follows:
+\begin{itemize}
+    \item A short inline definition is now added at the end of Section~2.1, immediately after the design vector $\mathbf{x}$ is introduced (line 188 of the revised file): \new{``Two patch categories are considered. \textbf{Category 0 (aligned-orientation patches)} keeps all six elliptical steps oriented along the patch longitudinal axis. \textbf{Category 1 (mixed-orientation patches)} rotates each step by the orientation angle of the corresponding patch ply $[0^\circ/90^\circ/0^\circ/90^\circ/-45^\circ/45^\circ]$, so step contours follow the underlying fibre direction; this introduces the additional nesting constraint of Eq.~(4).''}
+    \item The constraint subsection labels have been updated to ``Category 0 \new{--- aligned-orientation patches}'' (line 199) and ``Category 1 \new{--- mixed-orientation patches}'' (line 204).
+    \item Subsection headings at the start of Section~4.1 have been updated to ``Category 0: \new{Aligned-Orientation Patches}'' (line 468) and ``Category 1: \new{Mixed-Orientation Patches}'' (line 503).
+    \item Table~5 and Table~6 captions have been changed from ``Standard Optimization'' / ``Complex Geometry'' to \new{``Aligned-Orientation Patches''} / \new{``Mixed-Orientation Patches''} (lines 537 and 554) so that the table labels match the inline definitions.
+\end{itemize}
+Regarding the ``Category~38'' phrase: this was a typo in the original Section~3.5 (the missing words ``for Category~1'' had been dropped, leaving the malformed string ``Category~0 and 28''). The sentence has been rewritten as detailed in the response to R1-4.14 (line 408 of the revised file).
+
+\subsection*{4. Data-flow / training pipeline diagram}
+\rev{``Provide more information on the model training process, and data flow. How do all the components in Section~3.1 -- 3.5 link up and work together? At the moment, it is unclear how all the pieces fit together.''}
+\resp We agree that the original presentation deferred the overview figure (Algorithm\_Flow) too far into the section --- it sat inside Section~3.5, after all of Sections~3.1--3.4 had already introduced their components in isolation. Three coordinated changes have been made to address this:
+\begin{itemize}
+    \item \textbf{Relocation.} The schematic of the DKAL framework has been moved from Section~3.5 to the opening of Section~3, so the reader sees the closed-loop overview \emph{before} the component-by-component subsections.
+    \item \textbf{Roadmap sentence.} A new sentence has been added at the end of the Section~3 introduction (line 298 of the revised file), explicitly mapping each numbered block in the figure to the relevant subsection: \new{``Figure~3 of the manuscript (the DKAL schematic) provides a high-level overview of the framework and shows how the components introduced in this section link together. The four numbered blocks correspond, in turn, to the Deep Kernel GP and its kernel choice (Block~1, Sections~3.1--3.3), the Bayesian acquisition step that scores candidate designs (Block~2, Section~3.4), the high-fidelity FEM evaluation that returns the measured compressive strength (Block~3, Section~2.2), and the data-augmentation step that re-enters Block~1 to retrain the surrogate (Block~4, Section~3.5).''}
+    \item \textbf{Expanded caption.} The figure caption itself has been rewritten so the block-to-section mapping is visible to anyone flipping back to the figure later, including the explicit data flow through each block (DNN feature extractor $\rightarrow$ GP $\rightarrow$ $\mu, \sigma$ in Block~1; Monte Carlo pool $\rightarrow$ acquisition score $S(\mathbf{x})$ in Block~2; FEM evaluation of $\mathbf{x}^*$ returning $y_{\text{new}}$ in Block~3; dataset update $\mathcal{D}_{n+1} = \mathcal{D}_n \cup \{(\mathbf{x}^*, y_{\text{new}})\}$ in Block~4).
+\end{itemize}
+Together these changes give the reader a coherent overview before the detailed equations of Sections~3.1--3.5, and a clear cross-reference back to each subsection as it is read.
+
+\subsection*{5. Efficiency vocabulary}
+\rev{``Please define what you refer to as Efficiency Ratio in 4.1.2. There are uses of many different types of efficiency in the paper, e.g.\ search efficiency, material efficiency, efficiency ratio, sample efficiency. They do get muddled throughout the text, please define them before first use for clarity.''}
+\resp The reviewer is right that the word ``efficiency'' was overloaded across at least seven distinct senses in the original manuscript. Rather than introduce a separate glossary section, we have eliminated the ambiguity by replacing each overloaded use \emph{inline} with a more descriptive phrase:
+\begin{itemize}
+    \item The previous ``physical/repair efficiency limit'' (the $\approx 95\,\%$ strength-recovery asymptote) is now consistently called the \new{strength-recovery limit} (4 sites: lines 115, 486, 493, 783).
+    \item The previous column header ``Efficiency Ratio'' in the Category~0 and Category~1 top-candidates tables (Section~4.2) has been replaced with \new{Strength-to-Volume Ratio $R$ [kN/mm$^3$]} to make both the formula and the units explicit (lines 541 and 558).
+    \item ``Convergence efficiency'' $\rightarrow$ \new{convergence rate} (line 169).
+    \item ``Process efficiency metric'' (manufacturing context) $\rightarrow$ \new{process-time metric} (line 180).
+    \item ``Efficiency Zone'' (the vertical leg of the L-shape) $\rightarrow$ \new{Pre-Saturation Zone} (line 492).
+    \item ``High-efficiency zone / recovery / material efficiency'' uses in the results and conclusions have been replaced with \new{high strength-to-volume zone} (line 465), \new{near-maximal strength recovery} (line 527), \new{material-use efficiency} (line 532, with an inline definition), and \new{high strength-to-volume ratio} (lines 602, 704, 785). The Step~\#3 replacement of ``lean, efficient region'' with ``lean, high-performance region'' that originally appeared in Section~4.3 is no longer present, as the entire surrounding paragraph was subsequently rewritten in literal terms when responding to R1-3 (see Section~3 above).
+    \item ``Efficiency gains'' (computational) $\rightarrow$ \new{computational speed-up} (line 574) or \new{computational efficiency gains} (line 759), with the qualifier ``computational'' added explicitly so the meaning is anchored.
+\end{itemize}
+The remaining uses of ``efficiency'' (e.g.\ ``Computational Efficiency'' as a subsection title, or adverbial ``efficiently'') are now unambiguous in context and are retained as-is. The ``efficiency frontier'' / Pareto front distinction is addressed separately under R1-4.18.
+
+\subsection*{6. Mesh-dependence of the 95\,\% saturation}
+\rev{``On page 14, you raised the point that the optimised strength is $\sim$95\,\% of what the laminate is actually capable of due to model stress concentrations. This value will likely be mesh dependent since the models are always problematic at sharper corners. Could you comment on how one might reconcile this issue? How might the search of optimal design be influenced by the model limitation?''}
+\resp The reviewer raises a fair concern that we have now addressed in Section~2.2 (line 240 of the revised file). Rather than rely on an isolated mesh-refinement convergence study, the present finite-element methodology has been validated end-to-end against experimental compression-after-impact data at multiple scales --- from coupon-level standard characterisation tests up to subcomponent-level repair specimens (Psarras et al., 2024; Psarras et al., 2020; Psarras et al., 2023). The local mesh refinement applied at the step corners (at least 3--5 elements spanning the cohesive-zone length $L_{cz}$) is the same refinement used in those validated studies, so the predicted strength response in the present work inherits their experimental confidence.
+
+The newly inserted text reads: \new{``Rather than a stand-alone mesh-refinement convergence study, the present methodology --- including the SC8R element type, the local mesh refinement at the step corners (at least 3--5 elements spanning the cohesive zone length $L_{cz}$), and the calibrated material card of Table~1 --- has been validated end-to-end against experimental compression-after-impact data at the coupon and subcomponent scales [3, 21, 23]. The $\approx 95\,\%$ strength-recovery limit reported in Section~4 therefore reflects an experimentally anchored physical saturation: the stress concentrations at the step corners are a geometric feature of the stepped-repair configuration, not artefacts of element size.''}
+
+Regarding the influence of the model limitation on the optimal design search: the active-learning loop operates strictly within the same numerical model used for the validation studies, and the optimal designs identified at the saturation plateau ($\approx 71.2$~kN) are themselves located in a regime where the numerical predictions have been benchmarked against test data. The optimisation therefore inherits the model's experimental fidelity; it does not extrapolate beyond the validated regime.
+
+\subsection*{7. Figures 6 and 7 heatmaps}
+\rev{``Could you please elaborate on Figures~6 and~7? These heat maps are difficult to understand, e.g.\ on the x-axis, the transition from `initial data' to `active learning'. Maybe it is better to label `initial data' as `exploration phase', if I understand it correctly. What do you mean by `parameter values' on the right y-axis?''}
+\resp Both heatmaps have been re-rendered with clearer labels, and the captions and Section~4.3 prose have been rewritten so the figure is self-explanatory.
+\begin{itemize}
+    \item \emph{X-axis labels.} The previous segment label ``Initial data'' could be misread as an early phase of the active-learning loop. To prevent this, the segment has been relabelled \new{``Warm-start dataset (prior parametric study)''}, making it clear that these are the 38 (Category~0) or 28 (Category~1) seed designs taken from Psarras et al.\ (2024), \emph{not} the early exploration phase of our active-learning loop. The right-hand segment has been relabelled \new{``Active learning iterations''} for consistency. The reviewer's suggestion to call the left segment ``exploration phase'' would have introduced a different ambiguity --- the early active-learning iterations (the first $\sim$10--20 columns to the right of the white dashed line) are themselves an exploration phase --- so we have used the more specific ``warm-start dataset'' label to disambiguate the two.
+    \item \emph{Y-axis colorbar.} The previous label ``Parameter Value (mm)'' has been replaced with the more descriptive \new{``Ply semi-axis length (mm)''}. Each row of the heatmap is now identified by its $a_i$ or $b_i$ index (the semi-axes defined in Eq.~(1) of Section~2.1) and the colour represents the length of that semi-axis in mm for the corresponding design.
+    \item \emph{Captions.} Both top-level captions have been expanded with a sentence describing the convention (rows = parameters, columns = designs over time, colour = length in mm, white dashed line = warm-start / AL boundary, red line = best candidate).
+\end{itemize}
+The re-rendered figures appear at lines 587 (Category~0) and 612 (Category~1) of the revised manuscript.
+
+\medskip
+\hrule
+\medskip
+
+\noindent\textit{Last updated: 2026-05-18 after Step~\#1 (bulk wording pass).}
+
+\end{document}

@@ -5,7 +5,7 @@ PROJECT:
   
 # --- File Paths and Names ---
 PATHS:
-  DATA_FILE: "Data_v4.xlsx"
+  DATA_FILE: "data/Data_v4.xlsx"
   PROCESSED_DIR: "data/processed"
   ARTIFACTS_DIR: "artifacts"
 

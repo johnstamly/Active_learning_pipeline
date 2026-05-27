@@ -52,7 +52,7 @@ update_data.py                # append a real FEM result back into the dataset
 cleanup_volume.py             # recompute Volume column for existing rows
 paper_results.ipynb           # paper figures (Pareto/L-shape, top-N tables)
 ablation_study.ipynb          # Table 4 ablation (RMSE, NLL)
-Data_v4.xlsx                  # raw FEM dataset (Elips0 + Elips1 sheets)
+data/Data_v4.xlsx             # raw FEM dataset (Elips0 + Elips1 sheets)
 data/processed/               # processed_data.csv, candidate CSVs
 artifacts/                    # saved DKGP weights, train tensors, target scaler
 REPO_NOTES.md                 # contributor-facing deep dive
@@ -82,7 +82,7 @@ python main_orchestrator.py --mode active_learning
 
 The orchestrator runs:
 
-1. **Prepare** — read `Data_v4.xlsx`, scale features, write
+1. **Prepare** — read `data/Data_v4.xlsx`, scale features, write
    `data/processed/processed_data.csv` and `artifacts/target_scaler.pkl`.
 2. **Train** — fit one DKGP per category (10 000 epochs by default), save
    weights and training tensors under `artifacts/`.
@@ -105,7 +105,7 @@ After a real FEM simulation comes back, edit the `Strength` value in the
 appropriate `new_candidate_point_cat_{c}.csv` and run:
 
 ```bash
-python update_data.py    # appends the new row into Data_v4.xlsx (.bak created)
+python update_data.py    # appends the new row into data/Data_v4.xlsx (backup created)
 ```
 
 ## Reproducing the paper figures
@@ -121,7 +121,7 @@ jupyter lab ablation_study.ipynb  # Table 4 ablation curves
 
 ## Data
 
-`Data_v4.xlsx` contains the raw FEM dataset, with two sheets:
+`data/Data_v4.xlsx` contains the raw FEM dataset, with two sheets:
 
 - **Elips0** — Category 0 patches (aligned orientation).
 - **Elips1** — Category 1 patches (mixed 0°/90°).

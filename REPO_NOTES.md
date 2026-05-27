@@ -36,7 +36,7 @@ update_data.py                # after a real FEM run, append the row to the Exce
 cleanup_volume.py             # recompute Volume column for existing rows
 ablation_study.ipynb          # 5-variant ablation (RMSE, NLL curves)
 paper_results.ipynb           # current paper figures (Pareto/L-shape, top-N)
-Data_v4.xlsx                  # raw FEM dataset (Elips0 + Elips1 sheets)
+data/Data_v4.xlsx             # raw FEM dataset (Elips0 + Elips1 sheets)
 data/processed/               # processed_data.csv, new_candidate_point_cat_{0,1}.csv
 artifacts/                    # dkgp_model_cat_{0,1}.pth, train_data_cat_{0,1}.pt, target_scaler.pkl
 paper/manuscript.pdf          # published manuscript
@@ -44,7 +44,7 @@ paper/manuscript.pdf          # published manuscript
 
 ## 3. Data
 
-`Data_v4.xlsx` has two sheets, both 19 columns:
+`data/Data_v4.xlsx` has two sheets, both 19 columns:
 - **Elips0** — Category 0, aligned-orientation patches.
 - **Elips1** — Category 1, mixed 0°/90° patches.
 
@@ -146,7 +146,7 @@ For each category:
 - Hard-coded axis limit ±21 mm.
 
 ### 4.6 `update_data.update_data_file`
-- Backs up `Data_v4.xlsx` to `Data_v4.xlsx.bak`.
+- Backs up `data/Data_v4.xlsx` to `data/Data_v4_BACKUP.xlsx`.
 - Reads existing sheets, captures their column order, appends the row from
   `new_candidate_point_cat_{c}.csv` with the **manually entered** new
   `Strength` value and the model's `Predicted_Strength_Mean`. Recomputes
@@ -214,7 +214,7 @@ python run_final_inference.py --mode robust    # LCB
 python run_final_inference.py --mode pure_mean # mu only
 
 # After a real FEM result is back, edit Strength in the candidate CSV, then:
-python update_data.py        # appends the new row into Data_v4.xlsx (.bak created)
+python update_data.py        # appends the new row into data/Data_v4.xlsx (backup created)
 
 # Notebooks
 jupyter lab paper_results.ipynb   # paper figures

@@ -35,6 +35,7 @@ Latex/
 paper/
 
 # Excel backups created by update_data.py
+*_BACKUP.xlsx
 *.xlsx.bak
 
 # Local-only candidate visualizations (regeneratable from notebooks)

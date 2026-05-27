@@ -50,7 +50,7 @@ def calculate_volume(row: pd.Series, base_features: List[str], thickness: float)
 
 def cleanup_volume_entries(config_manager: ConfigManager):
     """
-    Loads Data_v4.xlsx, recalculates and updates the 'Volume' column
+    Loads the dataset (PATHS.DATA_FILE), recalculates and updates the 'Volume' column
     for all entries in the 'Elips0' and 'Elips1' sheets.
     """
     

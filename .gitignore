@@ -1,0 +1,44 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# --- Virtual environments ---
+venv/
+env/
+.venv/
+.env
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Project-specific ---
+# Working LaTeX source (excluded until publication)
+Latex/
+
+# Manuscript PDF — not redistributed until the paper is officially published
+paper/
+
+# Excel backups created by update_data.py
+*.xlsx.bak
+
+# Local-only candidate visualizations (regeneratable from notebooks)
+data/figures/staircase_3d/*.html
+
+# Auto-memory directory (Claude Code)
+memory/

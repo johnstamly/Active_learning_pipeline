@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this code or data, please cite the accompanying paper."
+title: "Deep Kernel Bayesian Optimization for the Design of Stepped Composite Repairs under Compression"
+authors:
+  - family-names: "Stamatelatos"
+    given-names: "Giannis"
+    email: "mead6828@ac.upatras.gr"
+    affiliation: "Applied Mechanics Laboratory, University of Patras, Greece"
+  - family-names: "Billaudeau"
+    given-names: "Emilien"
+  - family-names: "Sergolle"
+    given-names: "Maëlle"
+  - family-names: "Balutch"
+    given-names: "Thomas"
+  - family-names: "Kostopoulos"
+    given-names: "Vassilis"
+    affiliation: "Applied Mechanics Laboratory, University of Patras, Greece"
+  - family-names: "Loutas"
+    given-names: "Theodoros"
+    affiliation: "Applied Mechanics Laboratory, University of Patras, Greece"
+  - family-names: "Psarras"
+    given-names: "Spyridon"
+    affiliation: "Applied Mechanics Laboratory, University of Patras, Greece"
+# The associated paper is currently under peer review at
+# Composites Part A: Applied Science and Manufacturing. The preferred-citation
+# block below will be filled in (journal, year, DOI) upon acceptance.
+license: MIT
